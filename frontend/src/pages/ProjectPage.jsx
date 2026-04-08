@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -8,7 +8,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-
+import { ArrowLeft, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { getProjectById } from "../api/projects";
 import {
@@ -25,18 +25,18 @@ import {
   updateTicket,
 } from "../api/tickets";
 import Column from "../components/board/Column";
-
+import MemberManagement from "../components/project/MemberManagement";
 export default function ProjectPage() {
   const { projectId } = useParams();
-  const { token } = useAuth();
-
+  const { token, user } = useAuth();
+  const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [columns, setColumns] = useState([]);
   const [tickets, setTickets] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const [showMemberPanel, setShowMemberPanel] = useState(false);
   const [showColumnForm, setShowColumnForm] = useState(false);
   const [columnTitle, setColumnTitle] = useState("");
   const [creatingColumn, setCreatingColumn] = useState(false);
@@ -166,7 +166,12 @@ export default function ProjectPage() {
       );
     } catch (error) {
       console.error("Failed to delete column:", error);
-      setError(error.response?.data?.message || "Failed to delete column");
+
+      if (error.response?.status === 403) {
+        setError("Only project admins can delete columns.");
+      } else {
+        setError(error.response?.data?.message || "Failed to delete column");
+      }
     }
   };
 
@@ -369,7 +374,12 @@ export default function ProjectPage() {
       fetchBoardData();
     }
   };
+  const isAdmin = project?.members?.some((member) => {
+    const memberUserId =
+      typeof member.user === "string" ? member.user : member.user?._id;
 
+    return memberUserId === user?._id && member.role === "admin";
+  });
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
@@ -391,6 +401,15 @@ export default function ProjectPage() {
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="px-6 py-6 max-w-[1400px] mx-auto">
+        <div className="mb-4">
+          <button
+            onClick={() => navigate("/")}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition"
+          >
+            <ArrowLeft size={18} />
+            Dashboard
+          </button>
+        </div>
         <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
@@ -402,20 +421,38 @@ export default function ProjectPage() {
               </p>
             </div>
 
-            <button
-              onClick={() => setShowColumnForm((prev) => !prev)}
-              className="rounded-xl bg-sky-500 text-white px-5 py-3 font-medium hover:bg-sky-600 transition"
-            >
-              {showColumnForm ? "Close" : "Add Column"}
-            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              {isAdmin && (
+                <button
+                  onClick={() => setShowMemberPanel((prev) => !prev)}
+                  className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-medium text-slate-700 hover:bg-slate-100 transition"
+                >
+                  {showMemberPanel ? "Close Members" : "Add Member"}
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowColumnForm((prev) => !prev)}
+                className="rounded-xl bg-sky-500 text-white px-5 py-3 font-medium hover:bg-sky-600 transition"
+              >
+                {showColumnForm ? "Close" : "Add Column"}
+              </button>
+            </div>
           </div>
 
           {error && (
-            <div className="mt-4 rounded-xl bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">
-              {error}
+            <div className="mt-4 flex items-start justify-between gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={() => setError("")}
+                className="shrink-0 rounded-lg p-1 text-red-500 hover:bg-red-100 hover:text-red-700 transition"
+                title="Close error message"
+              >
+                <X size={16} />
+              </button>
             </div>
           )}
-
           {showColumnForm && (
             <form
               onSubmit={handleCreateColumn}
@@ -438,7 +475,15 @@ export default function ProjectPage() {
             </form>
           )}
         </div>
-
+        {showMemberPanel && (
+          <div className="mt-4 mb-6">
+            <MemberManagement
+              projectId={projectId}
+              token={token}
+              isAdmin={isAdmin}
+            />
+          </div>
+        )}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}

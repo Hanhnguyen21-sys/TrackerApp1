@@ -46,3 +46,30 @@ export const deleteProject = async (projectId, token) => {
     });
     return response.data;
 };
+
+export const getProjectMembers = async (projectId, token) => {
+    const response = await api.get(`/projects/${projectId}/members`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};
+
+export const addProjectMember = async (projectId, memberData, token) => {
+    const response = await api.post(`/projects/${projectId}/members`, memberData, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};
+
+export const removeProjectMember = async (projectId, memberId, token) => {
+    const response = await api.delete(`/projects/${projectId}/members/${memberId}`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};

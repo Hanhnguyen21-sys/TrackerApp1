@@ -1,8 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { createProject, getMyProjects } from "../api/projects";
-
+import {
+  createProject,
+  getMyProjects,
+  deleteProject,
+  updateProject,
+} from "../api/projects";
+import { Pencil, X } from "lucide-react";
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
@@ -17,7 +22,12 @@ export default function Dashboard() {
     description: "",
   });
   const [creating, setCreating] = useState(false);
-
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    description: "",
+  });
+  const [savingEdit, setSavingEdit] = useState(false);
   const fetchProjects = async () => {
     try {
       setLoadingProjects(true);
@@ -68,7 +78,72 @@ export default function Dashboard() {
       setCreating(false);
     }
   };
+  const handleStartEditProject = (e, project) => {
+    e.stopPropagation();
+    setEditingProjectId(project._id);
+    setEditFormData({
+      name: project.name || "",
+      description: project.description || "",
+    });
+  };
 
+  const handleEditChange = (e) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleSaveEditProject = async (e, projectId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSavingEdit(true);
+    setError("");
+
+    try {
+      const data = await updateProject(projectId, editFormData, token);
+      const updatedProject = data.project || data;
+
+      setProjects((prev) =>
+        prev.map((project) =>
+          project._id === projectId
+            ? { ...project, ...updatedProject }
+            : project,
+        ),
+      );
+
+      setEditingProjectId(null);
+      setEditFormData({
+        name: "",
+        description: "",
+      });
+    } catch (error) {
+      console.error("Failed to update project:", error);
+      setError(error.response?.data?.message || "Failed to update project");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteProject = async (e, projectId, projectName) => {
+    e.stopPropagation();
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${projectName}"?`,
+    );
+    if (!confirmed) return;
+
+    try {
+      setError("");
+      await deleteProject(projectId, token);
+      setProjects((prev) =>
+        prev.filter((project) => project._id !== projectId),
+      );
+    } catch (error) {
+      console.error("Failed to delete project:", error);
+      setError(error.response?.data?.message || "Failed to delete project");
+    }
+  };
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-6xl mx-auto px-6 py-8">
@@ -154,29 +229,140 @@ export default function Dashboard() {
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {projects.map((project) => (
-                <button
-                  key={project._id}
-                  onClick={() => navigate(`/projects/${project._id}`)}
-                  className="text-left bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-sky-300 transition"
-                >
-                  <div className="h-2 bg-sky-400" />
-                  <div className="p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <h2 className="text-lg font-semibold text-slate-900">
-                        {project.name}
-                      </h2>
-                      <span className="rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-3 py-1">
-                        Project
-                      </span>
-                    </div>
+              {projects.map((project) => {
+                const isOwner =
+                  project.owner?._id === user?._id ||
+                  project.owner === user?._id;
 
-                    <p className="text-slate-500 text-sm mt-3 line-clamp-3">
-                      {project.description || "No description provided."}
-                    </p>
+                const isEditing = editingProjectId === project._id;
+
+                return (
+                  <div
+                    key={project._id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      if (!isEditing) navigate(`/projects/${project._id}`);
+                    }}
+                    onKeyDown={(e) => {
+                      if ((e.key === "Enter" || e.key === " ") && !isEditing) {
+                        navigate(`/projects/${project._id}`);
+                      }
+                    }}
+                    className="group text-left bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-md hover:border-sky-300 transition cursor-pointer"
+                  >
+                    <div className="h-2 bg-sky-400" />
+                    <div className="p-5">
+                      {isEditing ? (
+                        <form
+                          onSubmit={(e) =>
+                            handleSaveEditProject(e, project._id)
+                          }
+                          onClick={(e) => e.stopPropagation()}
+                          className="space-y-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h2 className="text-lg font-semibold text-slate-900">
+                              Edit Project
+                            </h2>
+                            <span className="rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-3 py-1">
+                              Project
+                            </span>
+                          </div>
+
+                          <input
+                            name="name"
+                            type="text"
+                            value={editFormData.name}
+                            onChange={handleEditChange}
+                            placeholder="Project name"
+                            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400"
+                          />
+
+                          <textarea
+                            name="description"
+                            value={editFormData.description}
+                            onChange={handleEditChange}
+                            rows={4}
+                            placeholder="Project description"
+                            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400"
+                          />
+
+                          <div className="flex gap-2">
+                            <button
+                              type="submit"
+                              disabled={savingEdit}
+                              className="rounded-xl bg-sky-500 text-white px-4 py-2 text-sm font-medium hover:bg-sky-600 transition disabled:opacity-70"
+                            >
+                              {savingEdit ? "Saving..." : "Save"}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingProjectId(null);
+                                setEditFormData({ name: "", description: "" });
+                              }}
+                              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="flex items-start justify-between gap-3">
+                            <h2 className="text-lg font-semibold text-slate-900">
+                              {project.name}
+                            </h2>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-3 py-1">
+                                Project
+                              </span>
+
+                              {isOwner && (
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                                  <button
+                                    type="button"
+                                    onClick={(e) =>
+                                      handleStartEditProject(e, project)
+                                    }
+                                    className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
+                                    title="Edit project"
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) =>
+                                      handleDeleteProject(
+                                        e,
+                                        project._id,
+                                        project.name,
+                                      )
+                                    }
+                                    className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+                                    title="Delete project"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <p className="text-slate-500 text-sm mt-3 line-clamp-3">
+                            {project.description || "No description provided."}
+                          </p>
+                        </>
+                      )}
+                    </div>
                   </div>
-                </button>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
