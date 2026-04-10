@@ -1,19 +1,17 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { Eye } from "lucide-react";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
 
   const [formData, setFormData] = useState({
-    username: "",
+    name: "",
     email: "",
     password: "",
   });
 
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -22,81 +20,89 @@ export default function Register() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setError("");
-    setSubmitting(true);
-
-    try {
-      await register(formData);
-      navigate("/");
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          "Registration failed. Please try again.",
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    console.log(formData);
+    navigate("/login");
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-        <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
-        <p className="text-slate-500 mt-2">
-          Start managing your projects easily.
-        </p>
+    <div className="min-h-screen bg-white grid grid-cols-1 md:grid-cols-2">
+      {/* LEFT SIDE */}
+      <div className="flex items-center justify-center px-6 py-10 md:px-12">
+        <div className="w-full max-w-md">
+          <h1 className="text-4xl font-bold text-slate-800 text-center ">
+            Sign up to Tracker App
+          </h1>
 
-        {error && (
-          <div className="mt-4 rounded-xl bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">
-            {error}
-          </div>
-        )}
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+            <input
+              type="text"
+              name="name"
+              placeholder="Your name"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full rounded-full bg-slate-100 px-6 py-5 text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-400"
+            />
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <input
-            name="username"
-            type="text"
-            placeholder="Name"
-            value={formData.name}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400"
-          />
-          <input
-            name="email"
-            type="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400"
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400"
-          />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full rounded-xl bg-sky-500 text-white py-3 font-medium hover:bg-sky-600 transition disabled:opacity-70"
-          >
-            {submitting ? "Creating account..." : "Register"}
-          </button>
-        </form>
+            <input
+              type="email"
+              name="email"
+              placeholder="Email address"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full rounded-full bg-slate-100 px-6 py-5 text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-400"
+            />
 
-        <p className="mt-6 text-sm text-slate-500 text-center">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-sky-600 font-medium hover:underline"
-          >
-            Login
-          </Link>
-        </p>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                className="w-full rounded-full bg-slate-100 px-6 py-5 pr-14 text-slate-700 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <Eye className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-center ">
+              <button
+                type="submit"
+                className="rounded-full bg-sky-500 px-12 py-4 text-white font-semibold hover:bg-blue-700 transition"
+              >
+                Sign up
+              </button>
+            </div>
+          </form>
+
+          {/* Footer */}
+          <p className="mt-10 text-slate-500 text-sm text-center ">
+            Have an account?{" "}
+            <Link
+              to="/login"
+              className="text-blue-500 font-medium hover:underline"
+            >
+              Sign In
+            </Link>
+          </p>
+        </div>
+      </div>
+
+      {/* RIGHT SIDE */}
+      <div className="hidden md:block relative">
+        <img
+          src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80"
+          alt="Dark workspace"
+          className="h-full w-full object-cover"
+        />
       </div>
     </div>
   );
