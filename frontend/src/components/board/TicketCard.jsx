@@ -1,18 +1,12 @@
-import { useState } from "react";
 import { Pencil, X } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export default function TicketCard({ ticket, onUpdateTicket, onDeleteTicket }) {
-  const [isEditing, setIsEditing] = useState(false);
-
-  const [formData, setFormData] = useState({
-    title: ticket.title || "",
-    description: ticket.description || "",
-    type: ticket.type || "Task",
-    priority: ticket.priority || "Medium",
-  });
-
+export default function TicketCard({
+  ticket,
+  onDeleteTicket,
+  onEditTicket, // new prop
+}) {
   const {
     attributes,
     listeners,
@@ -33,85 +27,6 @@ export default function TicketCard({ ticket, onUpdateTicket, onDeleteTicket }) {
     transition,
   };
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    await onUpdateTicket(ticket._id, formData);
-    setIsEditing(false);
-  };
-
-  if (isEditing) {
-    return (
-      <form
-        onSubmit={handleSave}
-        className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm space-y-3"
-      >
-        <input
-          name="title"
-          value={formData.title}
-          onChange={handleChange}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400"
-          placeholder="Title"
-        />
-
-        <textarea
-          name="description"
-          value={formData.description}
-          onChange={handleChange}
-          rows={3}
-          className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400"
-          placeholder="Description"
-        />
-
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            name="priority"
-            value={formData.priority}
-            onChange={handleChange}
-            className="rounded-xl border border-slate-300 px-3 py-2 bg-white"
-          >
-            <option value="Low">Low</option>
-            <option value="Medium">Medium</option>
-            <option value="High">High</option>
-          </select>
-
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="rounded-xl border border-slate-300 px-3 py-2 bg-white"
-          >
-            <option value="Task">Task</option>
-            <option value="Bug">Bug</option>
-            <option value="Feature">Feature</option>
-          </select>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            className="rounded-xl bg-sky-500 text-white px-4 py-2 text-sm font-medium hover:bg-sky-600 transition"
-          >
-            Save
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditing(false)}
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition"
-          >
-            Cancel
-          </button>
-        </div>
-      </form>
-    );
-  }
-
   return (
     <div
       ref={setNodeRef}
@@ -131,12 +46,13 @@ export default function TicketCard({ ticket, onUpdateTicket, onDeleteTicket }) {
 
         <div className="flex items-center gap-1 shrink-0">
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => onEditTicket(ticket)}
             className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
             title="Edit ticket"
           >
             <Pencil size={16} />
           </button>
+
           <button
             onClick={() => {
               const confirmed = window.confirm(

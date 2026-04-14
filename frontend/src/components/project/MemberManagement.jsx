@@ -1,14 +1,8 @@
-import { useEffect, useState, useMemos } from "react";
-import {
-  getProjectMembers,
-  addProjectMember,
-  removeProjectMember,
-} from "../../api/projects";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-export default function MemberManagement({ projectId, token, isAdmin }) {
-  const navigate = useNavigate();
+import { useEffect, useState } from "react";
+import { getProjectMembers, removeProjectMember } from "../../api/projects";
+import { sendProjectInvitation } from "../../api/invitations";
 
+export default function MemberManagement({ projectId, token, isAdmin }) {
   const [members, setMembers] = useState([]);
   const [memberEmail, setMemberEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -43,13 +37,17 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
       setAdding(true);
       setError("");
 
-      await addProjectMember(projectId, { email: memberEmail.trim() }, token);
+      await sendProjectInvitation(
+        projectId,
+        { email: memberEmail.trim() },
+        token,
+      );
 
       setMemberEmail("");
-      fetchMembers();
+      alert("Invitation sent successfully");
     } catch (error) {
-      console.error("Failed to add member:", error);
-      setError(error.response?.data?.message || "Failed to add member");
+      console.error("Failed to send invitation:", error);
+      setError(error.response?.data?.message || "Failed to send invitation");
     } finally {
       setAdding(false);
     }
@@ -72,16 +70,16 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
   };
 
   return (
-    <div className=" bg-[#f5f6f7] border border-slate-200 rounded-2xl p-5 shadow-sm">
+    <div className="bg-[#f5f6f7] border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Members</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Manage who can access this project.
+          Invite people and manage who can access this project.
         </p>
       </div>
 
       {error && (
-        <div className="mt-4 rounded-xl bg-red-50 border border-red-200 text-red-600 px-4 py-3 text-sm">
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {error}
         </div>
       )}
@@ -93,23 +91,23 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
             value={memberEmail}
             onChange={(e) => setMemberEmail(e.target.value)}
             placeholder="Enter member email"
-            className="flex-1 rounded-xl border border-slate-300 px-4 py-2 outline-none focus:ring-2 focus:ring-sky-400"
+            className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-black outline-none focus:ring-2 focus:ring-sky-400"
           />
           <button
             type="submit"
             disabled={adding}
-            className="rounded-xl bg-sky-500 text-white px-4 py-2 font-medium hover:bg-sky-600 transition disabled:opacity-70"
+            className="rounded-xl bg-sky-500 px-4 py-2 font-medium text-black transition hover:bg-sky-600 disabled:opacity-70"
           >
-            {adding ? "Adding..." : "Add"}
+            {adding ? "Sending..." : "Send Invite"}
           </button>
         </form>
       )}
 
       <div className="mt-4 space-y-3">
         {loading ? (
-          <p className="text-slate-500 text-sm">Loading members...</p>
+          <p className="text-sm text-slate-500">Loading members...</p>
         ) : members.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-400 text-center">
+          <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
             No members found.
           </div>
         ) : (
@@ -132,7 +130,7 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-slate-100 text-slate-600 text-xs font-medium px-3 py-1 capitalize">
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium capitalize text-slate-600">
                     {member.role}
                   </span>
 
@@ -142,7 +140,7 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
                       onClick={() =>
                         handleRemoveMember(memberUserId, memberUser?.username)
                       }
-                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 transition"
+                      className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 transition hover:bg-red-50"
                     >
                       Remove
                     </button>

@@ -11,7 +11,7 @@ export default function Column({
   column,
   tickets,
   onOpenTicketModal,
-  onUpdateTicket,
+  onEditTicket,
   onDeleteTicket,
   onRenameColumn,
   onDeleteColumn,
@@ -35,6 +35,10 @@ export default function Column({
     setIsEditingColumn(false);
   };
 
+  const handleOpenEditTicket = (ticket) => {
+    onEditTicket(ticket);
+  };
+
   return (
     <div className="min-w-[320px] max-w-[320px] bg-slate-50 border border-slate-200 rounded-2xl p-4">
       <div className="mb-4">
@@ -44,6 +48,7 @@ export default function Column({
               value={columnTitle}
               onChange={(e) => setColumnTitle(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+              placeholder="Column title"
             />
             <div className="flex gap-2">
               <button
@@ -81,6 +86,7 @@ export default function Column({
               >
                 <Pencil size={16} />
               </button>
+
               <button
                 onClick={() => {
                   const confirmed = window.confirm(
@@ -110,8 +116,8 @@ export default function Column({
               <TicketCard
                 key={ticket._id}
                 ticket={ticket}
-                onUpdateTicket={onUpdateTicket}
                 onDeleteTicket={onDeleteTicket}
+                onEditTicket={handleOpenEditTicket}
               />
             ))}
           </div>
