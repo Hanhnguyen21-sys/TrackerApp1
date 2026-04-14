@@ -1,5 +1,5 @@
 import { Search, Plus, LogOut } from "lucide-react";
-
+import { useNavigate } from "react-router-dom";
 export default function NavBar({
   logout,
   searchTerm,
@@ -8,14 +8,18 @@ export default function NavBar({
   showSearchDropdown,
   setShowSearchDropdown,
   searchSuggestions,
-  navigate,
+  navigate: navigateProp,
   activeView,
   setShowCreateModal,
 }) {
+  const navigate = useNavigate();
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/10 bg-[#1d2125]">
       <div className="flex h-full items-center justify-between px-4">
-        <div className="flex items-center gap-3 min-w-[220px]">
+        <div
+          onClick={() => navigate("/")}
+          className="flex items-center gap-3 min-w-[220px] cursor-pointer"
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500 font-bold text-white">
             T
           </div>

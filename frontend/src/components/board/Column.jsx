@@ -10,22 +10,14 @@ import TicketCard from "./TicketCard";
 export default function Column({
   column,
   tickets,
-  onCreateTicket,
+  onOpenTicketModal,
   onUpdateTicket,
   onDeleteTicket,
   onRenameColumn,
   onDeleteColumn,
 }) {
-  const [showTicketForm, setShowTicketForm] = useState(false);
   const [isEditingColumn, setIsEditingColumn] = useState(false);
   const [columnTitle, setColumnTitle] = useState(column.title);
-
-  const [ticketData, setTicketData] = useState({
-    title: "",
-    description: "",
-    type: "Task",
-    priority: "Medium",
-  });
 
   const { setNodeRef } = useDroppable({
     id: column._id,
@@ -34,29 +26,6 @@ export default function Column({
       column,
     },
   });
-
-  const handleTicketChange = (e) => {
-    setTicketData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value,
-    }));
-  };
-
-  const handleCreateTicketSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!ticketData.title.trim()) return;
-
-    await onCreateTicket(column._id, ticketData);
-
-    setTicketData({
-      title: "",
-      description: "",
-      type: "Task",
-      priority: "Medium",
-    });
-    setShowTicketForm(false);
-  };
 
   const handleRenameColumn = async (e) => {
     e.preventDefault();
@@ -149,73 +118,12 @@ export default function Column({
         </SortableContext>
       </div>
 
-      {showTicketForm ? (
-        <form onSubmit={handleCreateTicketSubmit} className="mt-4 space-y-3">
-          <input
-            name="title"
-            value={ticketData.title}
-            onChange={handleTicketChange}
-            placeholder="Ticket title"
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400 bg-white"
-          />
-
-          <textarea
-            name="description"
-            value={ticketData.description}
-            onChange={handleTicketChange}
-            placeholder="Description"
-            rows={3}
-            className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400 bg-white"
-          />
-
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              name="priority"
-              value={ticketData.priority}
-              onChange={handleTicketChange}
-              className="rounded-xl border border-slate-300 px-3 py-2 bg-white"
-            >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-            </select>
-
-            <select
-              name="type"
-              value={ticketData.type}
-              onChange={handleTicketChange}
-              className="rounded-xl border border-slate-300 px-3 py-2 bg-white"
-            >
-              <option value="Task">Task</option>
-              <option value="Bug">Bug</option>
-              <option value="Story">Story</option>
-            </select>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="rounded-xl bg-sky-500 text-white px-4 py-2 text-sm font-medium hover:bg-sky-600 transition"
-            >
-              Add
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTicketForm(false)}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          onClick={() => setShowTicketForm(true)}
-          className="mt-4 w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-medium text-slate-600 hover:bg-white transition"
-        >
-          + Add Ticket
-        </button>
-      )}
+      <button
+        onClick={() => onOpenTicketModal(column._id)}
+        className="mt-4 w-full rounded-xl border border-dashed border-slate-300 py-3 text-sm font-medium text-slate-600 hover:bg-white transition"
+      >
+        + Add Ticket
+      </button>
     </div>
   );
 }

@@ -72,7 +72,7 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+    <div className=" bg-[#f5f6f7] border border-slate-200 rounded-2xl p-5 shadow-sm">
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Members</h2>
         <p className="text-sm text-slate-500 mt-1">

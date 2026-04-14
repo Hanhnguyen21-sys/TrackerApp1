@@ -26,6 +26,8 @@ import {
 } from "../api/tickets";
 import Column from "../components/board/Column";
 import MemberManagement from "../components/project/MemberManagement";
+import Navbar from "../components/layout/NavBar";
+import TicketCard from "../components/board/TicketCard";
 export default function ProjectPage() {
   const { projectId } = useParams();
   const { token, user } = useAuth();
@@ -40,12 +42,18 @@ export default function ProjectPage() {
   const [showColumnForm, setShowColumnForm] = useState(false);
   const [columnTitle, setColumnTitle] = useState("");
   const [creatingColumn, setCreatingColumn] = useState(false);
-
+  const [showTicketForm, setShowTicketForm] = useState(false);
+  const [selectedColumnId, setSelectedColumnId] = useState(null);
+  const [ticketFormData, setTicketFormData] = useState({
+    title: "",
+    description: "",
+    priority: "Medium",
+    type: "Task",
+  });
+  const [creatingTicket, setCreatingTicket] = useState(false);
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 6,
-      },
+      activationConstraint: { distance: 6 },
     }),
   );
 
@@ -53,13 +61,11 @@ export default function ProjectPage() {
     try {
       setLoading(true);
       setError("");
-
       const [projectData, columnsData, ticketsData] = await Promise.all([
         getProjectById(projectId, token),
         getColumnsByProject(projectId, token),
         getTicketsByProject(projectId, token),
       ]);
-
       setProject(projectData.project || projectData);
       setColumns(columnsData.columns || columnsData);
       setTickets(ticketsData.tickets || ticketsData);
@@ -72,39 +78,26 @@ export default function ProjectPage() {
   };
 
   useEffect(() => {
-    if (projectId && token) {
-      fetchBoardData();
-    }
+    if (projectId && token) fetchBoardData();
   }, [projectId, token]);
 
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
-
-    for (const column of columns) {
-      grouped[column._id] = [];
-    }
-
+    for (const column of columns) grouped[column._id] = [];
     for (const ticket of tickets) {
       const columnId =
         typeof ticket.column === "string" ? ticket.column : ticket.column?._id;
-
-      if (!grouped[columnId]) {
-        grouped[columnId] = [];
-      }
-
+      if (!grouped[columnId]) grouped[columnId] = [];
       grouped[columnId].push(ticket);
     }
-
     for (const key in grouped) {
       grouped[key].sort((a, b) => a.order - b.order);
     }
-
     return grouped;
   }, [columns, tickets]);
 
-  const getTicketById = (ticketId) => {
-    return tickets.find((ticket) => ticket._id === ticketId);
-  };
+  const getTicketById = (ticketId) =>
+    tickets.find((ticket) => ticket._id === ticketId);
 
   const getColumnIdOfTicket = (ticketId) => {
     const ticket = getTicketById(ticketId);
@@ -117,17 +110,14 @@ export default function ProjectPage() {
   const handleCreateColumn = async (e) => {
     e.preventDefault();
     if (!columnTitle.trim()) return;
-
     try {
       setCreatingColumn(true);
       const data = await createColumn(projectId, { title: columnTitle }, token);
       const newColumn = data.column || data;
-
       setColumns((prev) => [...prev, newColumn]);
       setColumnTitle("");
       setShowColumnForm(false);
     } catch (error) {
-      console.error("Failed to create column:", error);
       setError(error.response?.data?.message || "Failed to create column");
     } finally {
       setCreatingColumn(false);
@@ -138,14 +128,12 @@ export default function ProjectPage() {
     try {
       const data = await updateColumn(columnId, formData, token);
       const updated = data.column || data;
-
       setColumns((prev) =>
         prev.map((col) =>
           col._id === columnId ? { ...col, ...updated } : col,
         ),
       );
     } catch (error) {
-      console.error("Failed to rename column:", error);
       setError(error.response?.data?.message || "Failed to rename column");
     }
   };
@@ -153,7 +141,6 @@ export default function ProjectPage() {
   const handleDeleteColumn = async (columnId) => {
     try {
       await deleteColumn(columnId, token);
-
       setColumns((prev) => prev.filter((col) => col._id !== columnId));
       setTickets((prev) =>
         prev.filter((ticket) => {
@@ -165,8 +152,6 @@ export default function ProjectPage() {
         }),
       );
     } catch (error) {
-      console.error("Failed to delete column:", error);
-
       if (error.response?.status === 403) {
         setError("Only project admins can delete columns.");
       } else {
@@ -182,11 +167,8 @@ export default function ProjectPage() {
         { columnId, ...ticketData },
         token,
       );
-      const newTicket = data.ticket || data;
-
-      setTickets((prev) => [...prev, newTicket]);
+      setTickets((prev) => [...prev, data.ticket || data]);
     } catch (error) {
-      console.error("Failed to create ticket:", error);
       setError(error.response?.data?.message || "Failed to create ticket");
     }
   };
@@ -195,14 +177,12 @@ export default function ProjectPage() {
     try {
       const data = await updateTicket(ticketId, formData, token);
       const updated = data.ticket || data;
-
       setTickets((prev) =>
         prev.map((ticket) =>
           ticket._id === ticketId ? { ...ticket, ...updated } : ticket,
         ),
       );
     } catch (error) {
-      console.error("Failed to update ticket:", error);
       setError(error.response?.data?.message || "Failed to update ticket");
     }
   };
@@ -212,20 +192,16 @@ export default function ProjectPage() {
       await deleteTicket(ticketId, token);
       setTickets((prev) => prev.filter((ticket) => ticket._id !== ticketId));
     } catch (error) {
-      console.error("Failed to delete ticket:", error);
       setError(error.response?.data?.message || "Failed to delete ticket");
     }
   };
 
   const handleDragEnd = async (event) => {
     const { active, over } = event;
-
-    if (!over) return;
-    if (active.id === over.id) return;
+    if (!over || active.id === over.id) return;
 
     const activeTicketId = active.id;
     const overId = over.id;
-
     const sourceColumnId = getColumnIdOfTicket(activeTicketId);
     if (!sourceColumnId) return;
 
@@ -235,162 +211,154 @@ export default function ProjectPage() {
         ? overTicket.column
         : overTicket.column?._id
       : overId;
-
     if (!destinationColumnId) return;
 
     const sourceTickets = tickets
-      .filter((ticket) => {
-        const ticketColumnId =
-          typeof ticket.column === "string"
-            ? ticket.column
-            : ticket.column?._id;
-        return ticketColumnId === sourceColumnId;
+      .filter((t) => {
+        const col = typeof t.column === "string" ? t.column : t.column?._id;
+        return col === sourceColumnId;
       })
       .sort((a, b) => a.order - b.order);
 
     const destinationTickets = tickets
-      .filter((ticket) => {
-        const ticketColumnId =
-          typeof ticket.column === "string"
-            ? ticket.column
-            : ticket.column?._id;
-        return ticketColumnId === destinationColumnId;
+      .filter((t) => {
+        const col = typeof t.column === "string" ? t.column : t.column?._id;
+        return col === destinationColumnId;
       })
       .sort((a, b) => a.order - b.order);
 
     const activeIndex = sourceTickets.findIndex(
-      (ticket) => ticket._id === activeTicketId,
+      (t) => t._id === activeTicketId,
     );
-
     let newTickets = [...tickets];
-    let destinationIndex = 0;
-
-    if (overTicket) {
-      destinationIndex = destinationTickets.findIndex(
-        (ticket) => ticket._id === overId,
-      );
-    } else {
-      destinationIndex = destinationTickets.length;
-    }
+    let destinationIndex = overTicket
+      ? destinationTickets.findIndex((t) => t._id === overId)
+      : destinationTickets.length;
 
     if (sourceColumnId === destinationColumnId) {
       const reordered = arrayMove(
         sourceTickets,
         activeIndex,
         destinationIndex,
-      ).map((ticket, index) => ({
-        ...ticket,
-        order: index,
-      }));
-
+      ).map((ticket, index) => ({ ...ticket, order: index }));
       newTickets = tickets.map((ticket) => {
         const found = reordered.find((t) => t._id === ticket._id);
         return found || ticket;
       });
-
       setTickets(newTickets);
-
       try {
         const movedTicket = reordered.find((t) => t._id === activeTicketId);
         await moveTicket(
           activeTicketId,
-          {
-            destinationColumnId,
-            newOrder: movedTicket.order,
-          },
+          { destinationColumnId, newOrder: movedTicket.order },
           token,
         );
-      } catch (error) {
-        console.error("Failed to move ticket:", error);
-        setError(error.response?.data?.message || "Failed to move ticket");
+      } catch {
         fetchBoardData();
       }
-
       return;
     }
 
     const movedTicket = sourceTickets[activeIndex];
-    const updatedMovedTicket = {
-      ...movedTicket,
-      column: destinationColumnId,
-    };
-
+    const updatedMovedTicket = { ...movedTicket, column: destinationColumnId };
     const newSourceTickets = sourceTickets
-      .filter((ticket) => ticket._id !== activeTicketId)
-      .map((ticket, index) => ({
-        ...ticket,
-        order: index,
-      }));
-
-    const destinationWithoutMoved = [...destinationTickets];
-    destinationWithoutMoved.splice(destinationIndex, 0, updatedMovedTicket);
-
-    const newDestinationTickets = destinationWithoutMoved.map(
-      (ticket, index) => ({
-        ...ticket,
-        column: destinationColumnId,
-        order: index,
-      }),
-    );
-
+      .filter((t) => t._id !== activeTicketId)
+      .map((t, i) => ({ ...t, order: i }));
+    const destWithMoved = [...destinationTickets];
+    destWithMoved.splice(destinationIndex, 0, updatedMovedTicket);
+    const newDestinationTickets = destWithMoved.map((t, i) => ({
+      ...t,
+      column: destinationColumnId,
+      order: i,
+    }));
     newTickets = tickets
-      .filter((ticket) => ticket._id !== activeTicketId)
-      .map((ticket) => {
-        const sourceUpdated = newSourceTickets.find(
-          (t) => t._id === ticket._id,
-        );
-        if (sourceUpdated) return sourceUpdated;
-
-        const destUpdated = newDestinationTickets.find(
-          (t) => t._id === ticket._id,
-        );
-        if (destUpdated) return destUpdated;
-
-        return ticket;
+      .filter((t) => t._id !== activeTicketId)
+      .map((t) => {
+        const s = newSourceTickets.find((x) => x._id === t._id);
+        if (s) return s;
+        const d = newDestinationTickets.find((x) => x._id === t._id);
+        if (d) return d;
+        return t;
       });
-
     newTickets.push(
       newDestinationTickets.find((t) => t._id === activeTicketId),
     );
-
     setTickets(newTickets);
-
     try {
-      const finalMovedTicket = newDestinationTickets.find(
-        (ticket) => ticket._id === activeTicketId,
+      const finalMoved = newDestinationTickets.find(
+        (t) => t._id === activeTicketId,
       );
-
       await moveTicket(
         activeTicketId,
-        {
-          destinationColumnId,
-          destinationOrder: finalMovedTicket.order,
-        },
+        { destinationColumnId, destinationOrder: finalMoved.order },
         token,
       );
-    } catch (error) {
-      console.error("Failed to move ticket:", error);
-      setError(error.response?.data?.message || "Failed to move ticket");
+    } catch {
       fetchBoardData();
     }
   };
+
   const isAdmin = project?.members?.some((member) => {
     const memberUserId =
       typeof member.user === "string" ? member.user : member.user?._id;
-
     return memberUserId === user?._id && member.role === "admin";
   });
+  const openTicketModal = (columnId) => {
+    setSelectedColumnId(columnId);
+    setTicketFormData({
+      title: "",
+      description: "",
+      priority: "Medium",
+      type: "Task",
+    });
+    setShowTicketForm(true);
+  };
+
+  const closeTicketModal = () => {
+    setShowTicketForm(false);
+    setSelectedColumnId(null);
+    setTicketFormData({
+      title: "",
+      description: "",
+      priority: "Medium",
+      type: "Task",
+    });
+  };
+
+  const handleTicketInputChange = (e) => {
+    const { name, value } = e.target;
+    setTicketFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleCreateTicketFromModal = async (e) => {
+    e.preventDefault();
+    if (!ticketFormData.title.trim() || !selectedColumnId) return;
+
+    try {
+      setCreatingTicket(true);
+      await handleCreateTicket(selectedColumnId, ticketFormData);
+      closeTicketModal();
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to create ticket");
+    } finally {
+      setCreatingTicket(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <p className="text-slate-500 text-lg">Loading project board...</p>
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
+        <p className="text-slate-400 text-lg">Loading project board...</p>
       </div>
     );
   }
 
   if (error && !project) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#0f172a] flex items-center justify-center px-4">
         <div className="bg-white border border-red-200 rounded-2xl p-6 shadow-sm text-center">
           <p className="text-red-600 font-medium">{error}</p>
         </div>
@@ -399,103 +367,69 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100">
-      <div className="px-6 py-6 max-w-[1400px] mx-auto">
-        <div className="mb-4">
-          <button
-            onClick={() => navigate("/")}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 transition"
-          >
-            <ArrowLeft size={18} />
-            Dashboard
-          </button>
-        </div>
-        <div className="mb-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">
-                {project?.name}
-              </h1>
-              <p className="text-slate-500 mt-2">
-                {project?.description || "No description available."}
-              </p>
-            </div>
+    <div className="min-h-screen bg-[#0f172a] text-white flex flex-col">
+      {/* ── Navbar slot ── drop your component right here */}
+      <Navbar />
 
-            <div className="flex items-center gap-3 flex-wrap">
-              {isAdmin && (
-                <button
-                  onClick={() => setShowMemberPanel((prev) => !prev)}
-                  className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-medium text-slate-700 hover:bg-slate-100 transition"
-                >
-                  {showMemberPanel ? "Close Members" : "Add Member"}
-                </button>
-              )}
-
-              <button
-                onClick={() => setShowColumnForm((prev) => !prev)}
-                className="rounded-xl bg-sky-500 text-white px-5 py-3 font-medium hover:bg-sky-600 transition"
-              >
-                {showColumnForm ? "Close" : "Add Column"}
-              </button>
-            </div>
+      {/* ── Project header (lighter blue) ── */}
+      <div className="border-b border-white/10 bg-[#1f51bf] px-6 py-5 shadow-md mt-16">
+        {/* Project name row */}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {project?.name}
+            </h1>
+            <p className="mt-1 text-sm text-white/65">
+              {project?.description || "Manage tasks, sprints, and progress."}
+            </p>
           </div>
 
-          {error && (
-            <div className="mt-4 flex items-start justify-between gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">
-              <p>{error}</p>
+          <div className="flex items-center gap-3 flex-wrap">
+            {isAdmin && (
               <button
-                type="button"
-                onClick={() => setError("")}
-                className="shrink-0 rounded-lg p-1 text-red-500 hover:bg-red-100 hover:text-red-700 transition"
-                title="Close error message"
+                onClick={() => setShowMemberPanel(true)}
+                className="rounded-lg border border-white/25 bg-white/15 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
               >
-                <X size={16} />
+                + Add Member
               </button>
-            </div>
-          )}
-          {showColumnForm && (
-            <form
-              onSubmit={handleCreateColumn}
-              className="mt-4 flex gap-3 flex-wrap"
+            )}
+            <button
+              onClick={() => setShowColumnForm(true)}
+              className="rounded-lg bg-white/25 border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/35 transition"
             >
-              <input
-                type="text"
-                placeholder="Column title"
-                value={columnTitle}
-                onChange={(e) => setColumnTitle(e.target.value)}
-                className="flex-1 min-w-[260px] rounded-xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-sky-400"
-              />
-              <button
-                type="submit"
-                disabled={creatingColumn}
-                className="rounded-xl bg-sky-500 text-white px-5 py-3 font-medium hover:bg-sky-600 transition disabled:opacity-70"
-              >
-                {creatingColumn ? "Creating..." : "Create"}
-              </button>
-            </form>
-          )}
+              + Add another list
+            </button>
+          </div>
         </div>
-        {showMemberPanel && (
-          <div className="mt-4 mb-6">
-            <MemberManagement
-              projectId={projectId}
-              token={token}
-              isAdmin={isAdmin}
-            />
+
+        {error && (
+          <div className="mt-4 flex items-start justify-between gap-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={() => setError("")}
+              className="shrink-0 rounded-lg p-1 hover:bg-white/10 transition"
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
+      </div>
+
+      {/* ── Board columns (deep navy) ── */}
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-6 py-5 bg-[#0f172a]">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-5 overflow-x-auto pb-4">
+          <div className="flex h-full items-start gap-4">
             {columns.map((column) => (
               <Column
                 key={column._id}
                 column={column}
                 tickets={ticketsByColumn[column._id] || []}
-                onCreateTicket={handleCreateTicket}
+                onOpenTicketModal={openTicketModal}
                 onUpdateTicket={handleUpdateTicket}
                 onDeleteTicket={handleDeleteTicket}
                 onRenameColumn={handleRenameColumn}
@@ -503,19 +437,199 @@ export default function ProjectPage() {
               />
             ))}
 
+            <div className="w-[280px] shrink-0">
+              <button
+                onClick={() => setShowColumnForm(true)}
+                className="flex w-full items-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 px-4 py-3 text-left font-medium text-white/60 hover:bg-white/10 hover:text-white/90 transition"
+              >
+                <span className="text-xl leading-none">+</span>
+                Add another column
+              </button>
+            </div>
+
             {columns.length === 0 && (
-              <div className="w-full bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-sm">
-                <h2 className="text-xl font-semibold text-slate-900">
+              <div className="w-[320px] rounded-2xl border border-white/10 bg-[#1e293b] p-6 text-white/80">
+                <h2 className="text-lg font-semibold text-white">
                   No columns yet
                 </h2>
-                <p className="text-slate-500 mt-2">
-                  Create your first column to start building the board.
+                <p className="mt-2 text-sm text-white/50">
+                  Create your first list to start building the board.
                 </p>
               </div>
             )}
           </div>
         </DndContext>
       </div>
+
+      {/* ── Add Column Modal ── */}
+      {showColumnForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#1e293b] p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">
+                Create New Column
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowColumnForm(false);
+                  setColumnTitle("");
+                }}
+                className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-white/50">
+              Enter a name for your new column.
+            </p>
+            <form onSubmit={handleCreateColumn} className="mt-5 space-y-4">
+              <input
+                type="text"
+                placeholder="e.g. To Do, In Progress, Done"
+                value={columnTitle}
+                onChange={(e) => setColumnTitle(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowColumnForm(false);
+                    setColumnTitle("");
+                  }}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-white/70 hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingColumn}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-70"
+                >
+                  {creatingColumn ? "Creating..." : "Create List"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ticket form modal */}
+      {showTicketForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#1e293b] p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">
+                Create New Ticket
+              </h2>
+              <button
+                type="button"
+                onClick={closeTicketModal}
+                className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="mt-2 text-sm text-white/50">
+              Fill out the details for your new ticket.
+            </p>
+
+            <form
+              onSubmit={handleCreateTicketFromModal}
+              className="mt-5 space-y-4"
+            >
+              <input
+                type="text"
+                name="title"
+                placeholder="Ticket title"
+                value={ticketFormData.title}
+                onChange={handleTicketInputChange}
+                className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-blue-500"
+                autoFocus
+              />
+
+              <textarea
+                name="description"
+                placeholder="Description"
+                value={ticketFormData.description}
+                onChange={handleTicketInputChange}
+                rows={4}
+                className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white placeholder:text-white/30 outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  name="type"
+                  value={ticketFormData.type}
+                  onChange={handleTicketInputChange}
+                  className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Task">Task</option>
+                  <option value="Bug">Bug</option>
+                  <option value="Story">Story</option>
+                </select>
+
+                <select
+                  name="priority"
+                  value={ticketFormData.priority}
+                  onChange={handleTicketInputChange}
+                  className="w-full rounded-xl border border-white/10 bg-[#0f172a] px-4 py-3 text-white outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeTicketModal}
+                  className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-white/70 hover:bg-white/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingTicket}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-70"
+                >
+                  {creatingTicket ? "Creating..." : "Create Ticket"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ── Member Modal ── */}
+      {showMemberPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#1e293b] p-6 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-white">Add Members</h2>
+              <button
+                type="button"
+                onClick={() => setShowMemberPanel(false)}
+                className="rounded-lg p-2 text-white/60 hover:bg-white/10 hover:text-white transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <p className="mt-2 text-sm text-white/50">
+              Add members and manage access for this project.
+            </p>
+            <div className="mt-5 max-h-[70vh] overflow-y-auto pr-1">
+              <MemberManagement
+                projectId={projectId}
+                token={token}
+                isAdmin={isAdmin}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
