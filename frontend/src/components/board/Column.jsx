@@ -13,6 +13,7 @@ export default function Column({
   onOpenTicketModal,
   onEditTicket,
   onDeleteTicket,
+  onViewTicket,
   onRenameColumn,
   onDeleteColumn,
 }) {
@@ -118,6 +119,7 @@ export default function Column({
                 ticket={ticket}
                 onDeleteTicket={onDeleteTicket}
                 onEditTicket={handleOpenEditTicket}
+                onViewTicket={onViewTicket}
               />
             ))}
           </div>

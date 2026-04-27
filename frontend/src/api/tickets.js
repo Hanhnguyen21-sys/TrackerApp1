@@ -53,3 +53,25 @@ export const moveTicket = async (ticketId, formData, token) => {
     });
     return response.data;
 };
+
+export const getTicketDetails = async (ticketId, token) => {
+    const response = await api.get(`/tickets/${ticketId}/details`, {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};
+
+export const addTicketComment = async (ticketId, body, token) => {
+    const response = await api.post(
+        `/tickets/${ticketId}/comments`,
+        { body },
+        {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        },
+    );
+    return response.data;
+};

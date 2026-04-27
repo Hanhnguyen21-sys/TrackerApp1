@@ -9,6 +9,7 @@ import userRoutes from "./routes/user.route.js";
 import columnRoutes from "./routes/column.route.js";
 import ticketRoutes from "./routes/ticket.route.js";
 import invitationRoutes from "./routes/invitation.route.js";
+import notificationRoutes from "./routes/notification.route.js";
 const app = express();
 
 
@@ -27,4 +28,5 @@ app.use("/api/users", userRoutes);
 app.use("/api", columnRoutes);
 app.use("/api", ticketRoutes);
 app.use("/api/invitations", invitationRoutes);
+app.use("/api/notifications", notificationRoutes);
 export default app;

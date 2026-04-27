@@ -5,6 +5,7 @@ const defaultForm = {
   description: "",
   type: "Task",
   priority: "Medium",
+  assignee: "",
 };
 
 export default function TicketModal({
@@ -13,6 +14,7 @@ export default function TicketModal({
   onSubmit,
   initialData = null,
   mode = "create",
+  assigneeOptions = [],
 }) {
   const [formData, setFormData] = useState(defaultForm);
 
@@ -23,6 +25,10 @@ export default function TicketModal({
         description: initialData.description || "",
         type: initialData.type || "Task",
         priority: initialData.priority || "Medium",
+        assignee:
+          typeof initialData.assignee === "string"
+            ? initialData.assignee
+            : initialData.assignee?._id || "",
       });
     } else {
       setFormData(defaultForm);
@@ -69,7 +75,7 @@ export default function TicketModal({
               value={formData.title}
               onChange={handleChange}
               placeholder="Enter ticket title"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400"
               required
             />
           </div>
@@ -84,44 +90,61 @@ export default function TicketModal({
               onChange={handleChange}
               rows={4}
               placeholder="Add ticket details"
-              className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-sky-400"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Priority
+                </label>
+                <select
+                  name="priority"
+                  value={formData.priority}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                >
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Type
+                </label>
+                <select
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
+                >
+                  <option value="Task">Task</option>
+                  <option value="Bug">Bug</option>
+                  <option value="Feature">Feature</option>
+                </select>
+              </div>
+            </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Priority
+                Assignee
               </label>
               <select
-                name="priority"
-                value={formData.priority}
+                name="assignee"
+                value={formData.assignee}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 bg-white"
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
               >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option value="">Unassigned</option>
+                {assigneeOptions.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
               </select>
             </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Type
-              </label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 bg-white"
-              >
-                <option value="Task">Task</option>
-                <option value="Bug">Bug</option>
-                <option value="Feature">Feature</option>
-              </select>
-            </div>
-          </div>
-
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
