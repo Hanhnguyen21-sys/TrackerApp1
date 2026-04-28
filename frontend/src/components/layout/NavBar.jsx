@@ -7,7 +7,10 @@ import {
   acceptInvitation,
   rejectInvitation,
 } from "../../api/invitations";
-import { getNotifications, markNotificationRead } from "../../api/notifications";
+import {
+  getNotifications,
+  markNotificationRead,
+} from "../../api/notifications";
 export default function NavBar({
   logout,
   searchTerm = "",
@@ -35,41 +38,39 @@ export default function NavBar({
   const hasCreateButton = typeof setShowCreateModal === "function";
   const hasLogout = typeof logout === "function";
 
-  const unreadNotificationsCount = notifications.filter((notification) => !notification.read).length;
+  const unreadNotificationsCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
   const pendingInvitesCount = invitations.length;
   const unreadCount = pendingInvitesCount + unreadNotificationsCount;
-
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!token) return;
+    if (!token) return;
 
+    const fetchAllNotifications = async () => {
       try {
         setLoadingInvitations(true);
-        const invitationsData = await getMyInvitations(token);
-        setInvitations(invitationsData.invitations || []);
-      } catch (error) {
-        console.error("Failed to fetch invitations:", error);
-      } finally {
-        setLoadingInvitations(false);
-      }
-    };
-
-    const fetchMentionNotifications = async () => {
-      if (!token) return;
-
-      try {
         setLoadingNotifications(true);
-        const data = await getNotifications(token);
-        setNotifications(data.notifications || []);
+
+        const [invitationsData, notificationsData] = await Promise.all([
+          getMyInvitations(token),
+          getNotifications(token),
+        ]);
+
+        setInvitations(invitationsData.invitations || []);
+        setNotifications(notificationsData.notifications || []);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
       } finally {
+        setLoadingInvitations(false);
         setLoadingNotifications(false);
       }
     };
 
-    fetchNotifications();
-    fetchMentionNotifications();
+    fetchAllNotifications();
+
+    const intervalId = setInterval(fetchAllNotifications, 5000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
 
   const handleAcceptInvite = async (invitationId) => {
@@ -80,6 +81,18 @@ export default function NavBar({
       );
     } catch (error) {
       console.error("Failed to accept invitation:", error);
+    }
+  };
+  const getNotificationTitle = (notification) => {
+    switch (notification.type) {
+      case "dueDate":
+        return "Task due soon";
+      case "invite":
+        return "Project invitation";
+      case "mention":
+        return `${notification.sender?.username || "Someone"} mentioned you`;
+      default:
+        return "New notification";
     }
   };
 
@@ -110,9 +123,11 @@ export default function NavBar({
       console.error("Failed to mark notification read:", error);
     }
 
-    if (notification.type === 'mention') {
-      const projectId = notification.targetProject?._id || notification.targetProject;
-      const ticketId = notification.targetTicket?._id || notification.targetTicket;
+    if (notification.type === "mention" || notification.type === "dueDate") {
+      const projectId =
+        notification.targetProject?._id || notification.targetProject;
+      const ticketId =
+        notification.targetTicket?._id || notification.targetTicket;
       if (projectId && ticketId) {
         navigate(`/projects/${projectId}?ticketId=${ticketId}`);
       }
@@ -225,7 +240,8 @@ export default function NavBar({
                     "Loading..."
                   ) : (
                     <span>
-                      {pendingInvitesCount} pending invite(s), {unreadNotificationsCount} mention(s)
+                      {pendingInvitesCount} pending invite(s),{" "}
+                      {unreadNotificationsCount} notification(s)
                     </span>
                   )}
                 </div>
@@ -274,11 +290,11 @@ export default function NavBar({
 
                 <div className="border-t border-white/10 px-4 py-3">
                   <div className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Mentions
+                    Notifications
                   </div>
                   {notifications.length === 0 ? (
                     <div className="px-2 py-3 text-sm text-slate-400">
-                      No mentions yet
+                      No notifications yet
                     </div>
                   ) : (
                     notifications.map((notification) => (
@@ -286,16 +302,17 @@ export default function NavBar({
                         key={notification._id}
                         type="button"
                         onClick={() => handleNotificationClick(notification)}
-                        className={`w-full text-left py-3 text-sm transition ${notification.read ? 'text-slate-300' : 'text-white hover:bg-white/5'}`}
+                        className={`w-full text-left py-3 text-sm transition ${notification.read ? "text-slate-300" : "text-white hover:bg-white/5"}`}
                       >
                         <div className="font-medium">
-                          {notification.sender?.username || 'Someone'} mentioned you
+                          {getNotificationTitle(notification)}
                         </div>
                         <div className="text-slate-400">
                           {notification.message}
                         </div>
                         <div className="mt-2 text-xs text-slate-500">
-                          {notification.targetProject?.name || 'Project'} • {notification.targetTicket?.title || 'Ticket'}
+                          {notification.targetProject?.name || "Project"} •{" "}
+                          {notification.targetTicket?.title || "Ticket"}
                         </div>
                       </button>
                     ))

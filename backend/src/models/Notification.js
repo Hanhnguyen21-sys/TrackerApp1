@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['invite', 'mention'],
+      enum: ["invitation", "ticket", "project", "dueDate","mention"],
       required: true,
     },
     message: {
