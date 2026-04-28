@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -23,16 +23,20 @@ import {
   getTicketsByProject,
   moveTicket,
   updateTicket,
+  getTicketDetails,
+  addTicketComment,
 } from "../api/tickets";
 import Column from "../components/board/Column";
 import MemberManagement from "../components/project/MemberManagement";
 import Navbar from "../components/layout/NavBar";
 import TicketModal from "../components/modal/TicketModal";
+import TicketDetailsModal from "../components/modal/TicketDetailsModal";
 
 export default function ProjectPage() {
   const { projectId } = useParams();
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [project, setProject] = useState(null);
   const [columns, setColumns] = useState([]);
@@ -50,6 +54,12 @@ export default function ProjectPage() {
   const [editingTicket, setEditingTicket] = useState(null);
   const [selectedColumnId, setSelectedColumnId] = useState(null);
   const [savingTicket, setSavingTicket] = useState(false);
+  const [showTicketDetails, setShowTicketDetails] = useState(false);
+  const [detailTicket, setDetailTicket] = useState(null);
+  const [detailComments, setDetailComments] = useState([]);
+  const [detailActivity, setDetailActivity] = useState([]);
+  const [commentText, setCommentText] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -85,6 +95,13 @@ export default function ProjectPage() {
     }
   }, [projectId, token]);
 
+  useEffect(() => {
+    const ticketId = searchParams.get('ticketId');
+    if (ticketId && token) {
+      loadTicketDetails(ticketId);
+    }
+  }, [searchParams, token]);
+
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
 
@@ -106,6 +123,22 @@ export default function ProjectPage() {
 
     return grouped;
   }, [columns, tickets]);
+
+  const assigneeOptions = useMemo(() => {
+    return (
+      project?.members
+        ?.filter((member) => member.status === "active")
+        .map((member) => {
+          const user = member.user;
+          const id = typeof user === "string" ? user : user?._id;
+          const name =
+            typeof user === "string"
+              ? user
+              : user?.username || user?.email || "Unknown";
+          return { id, name };
+        }) || []
+    );
+  }, [project]);
 
   const getTicketById = (ticketId) =>
     tickets.find((ticket) => ticket._id === ticketId);
@@ -255,6 +288,48 @@ export default function ProjectPage() {
       );
     } finally {
       setSavingTicket(false);
+    }
+  };
+
+  const openTicketDetails = async (ticket) => {
+    if (!ticket?._id) return;
+    await loadTicketDetails(ticket._id);
+  };
+
+  const closeTicketDetails = () => {
+    setShowTicketDetails(false);
+    setDetailTicket(null);
+    setDetailComments([]);
+    setDetailActivity([]);
+    setCommentText("");
+  };
+
+  const loadTicketDetails = async (ticketId) => {
+    try {
+      const data = await getTicketDetails(ticketId, token);
+      setDetailTicket(data.ticket || data);
+      setDetailComments(data.comments || []);
+      setDetailActivity(data.activity || []);
+      setShowTicketDetails(true);
+    } catch (error) {
+      console.error("Failed to load ticket details:", error);
+      setError(error.response?.data?.message || "Failed to load ticket details");
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!detailTicket || !commentText.trim()) return;
+    try {
+      setCommentSubmitting(true);
+      setError("");
+      const data = await addTicketComment(detailTicket._id, commentText, token);
+      const newComment = data.comment || data;
+      setDetailComments((prev) => [...prev, newComment]);
+      setCommentText("");
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to add comment");
+    } finally {
+      setCommentSubmitting(false);
     }
   };
 
@@ -470,6 +545,7 @@ export default function ProjectPage() {
                 tickets={ticketsByColumn[column._id] || []}
                 onOpenTicketModal={openTicketModal}
                 onEditTicket={handleOpenEditTicket}
+                onViewTicket={openTicketDetails}
                 onDeleteTicket={handleDeleteTicket}
                 onRenameColumn={handleRenameColumn}
                 onDeleteColumn={handleDeleteColumn}
@@ -567,6 +643,22 @@ export default function ProjectPage() {
         members={project?.members || []}
         isSubmitting={savingTicket}
         canAssign={isAdmin}
+      />
+
+      <TicketDetailsModal
+        isOpen={showTicketDetails}
+        onClose={() => {
+          closeTicketDetails();
+          setSearchParams({});
+        }}
+        ticket={detailTicket}
+        comments={detailComments}
+        activity={detailActivity}
+        commentText={commentText}
+        setCommentText={setCommentText}
+        onSubmitComment={handleSubmitComment}
+        isCommentSubmitting={commentSubmitting}
+        members={project?.members || []}
       />
 
       {showMemberPanel && (

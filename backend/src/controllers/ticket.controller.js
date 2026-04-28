@@ -105,11 +105,30 @@ export const getTicketsByColumn = async (req, res) => {
       .populate("reporter", "username email")
       .sort({ order: 1 });
 
-    res.status(200).json(tickets);
-  } catch (error) {
-    console.error("Error getting tickets by column:", error);
-    res.status(500).json({ message: error.message });
-  }
+// search tickets by title or description within a project
+// GET /api/projects/:projectId/tickets/search
+export const searchTickets = async (req, res) => {
+    try {
+        const { projectId } = req.params;
+        const { query } = req.query;
+        if (!isNonEmptyString(query)) {
+            return sendError(res, 'Search query is required', 400);
+        }
+        const tickets = await Ticket.find({
+            project: projectId,
+            $or: [
+                { title: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } },
+            ],
+        })
+            .populate('assignee', 'username email')
+            .populate('reporter', 'username email')
+            .sort({ order: 1 });
+        return sendSuccess(res, { tickets }, 'Ticket search completed successfully');
+    } catch (error) {
+        console.error('Error searching tickets:', error);
+        return sendError(res, 'Server error', 500);
+    }
 };
 
 // update a ticket

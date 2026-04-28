@@ -1,5 +1,6 @@
 import Column from "../models/Column.js";
-import Project from "../models/Project.js";
+import { sendError, sendSuccess } from "../utils/apiResponse.js";
+import { isNonEmptyString } from "../utils/validators.js";
 
 // =========== Column Controllers ===========
 //get all columns of a project
@@ -8,12 +9,12 @@ export const getColumnsByProjectId = async (req, res) => {
   try {
     const { projectId } = req.params;
     const columns = await Column.find({ project: projectId }).sort({ order: 1 });
-    res.status(200).json({columns});
+    return sendSuccess(res, { columns }, 'Project columns fetched successfully');
   } catch (error) {
     console.error("Error fetching columns by project id:", error.message);
-    res.status(500).json({ message: "Server error" });
+    return sendError(res, 'Server error', 500);
   }
-}
+};
 
 // create a new column
 // POST   /api/projects/:projectId/column
@@ -22,20 +23,20 @@ export const createColumn = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { title } = req.body;
-    if (!title) {
-      return res.status(400).json({ message: "Title is required" });
+    if (!isNonEmptyString(title)) {
+      return sendError(res, 'Title is required', 400);
     }
     const lastColumn = await Column.findOne({ project: projectId }).sort({ order: -1 });
     const newOrder = lastColumn ? lastColumn.order + 1 : 0;
-    const newColumn = await Column.create({ 
-        project : projectId,
-        title: title.trim(),
-        order: newOrder
+    const newColumn = await Column.create({
+      project: projectId,
+      title: title.trim(),
+      order: newOrder,
     });
-    res.status(201).json({ column: newColumn });
+    return sendSuccess(res, { column: newColumn }, 'Column created successfully', 201);
   } catch (error) {
     console.error("Error creating column:", error.message);
-    res.status(500).json({ message: "Server error" });
+    return sendError(res, 'Server error', 500);
   }
 };
 
@@ -47,20 +48,20 @@ export const updateColumnTitle = async (req, res) => {
     try {
         const { columnId } = req.params;
         const { title } = req.body;
-        if (!title) {
-            return res.status(400).json({ message: "Title is required" });
+        if (!isNonEmptyString(title)) {
+            return sendError(res, 'Title is required', 400);
         }
         const column = await Column.findById(columnId);
         if (!column) {
-            return res.status(404).json({ message: "Column not found" });
+            return sendError(res, 'Column not found', 404);
         }
         column.title = title.trim();
         await column.save();
-        res.status(200).json({ message: "Column title updated successfully", column });
+        return sendSuccess(res, { column }, 'Column title updated successfully');
     }
     catch (error) {
         console.error("Error updating column title:", error.message);
-        res.status(500).json({ message: "Server error" });
+        return sendError(res, 'Server error', 500);
     }   
 }
 
@@ -71,13 +72,13 @@ export const deleteColumn = async (req, res) => {
         const { columnId } = req.params;
         const column = await Column.findById(columnId);
         if (!column) {
-            return res.status(404).json({ message: "Column not found" });
+            return sendError(res, 'Column not found', 404);
         }
         await Column.findByIdAndDelete(columnId);
-        res.status(200).json({ message: "Column deleted successfully" });
+        return sendSuccess(res, {}, 'Column deleted successfully');
     }
     catch (error) {
         console.error("Error deleting column:", error.message);
-        res.status(500).json({ message: "Server error" });
+        return sendError(res, 'Server error', 500);
     }   
 }

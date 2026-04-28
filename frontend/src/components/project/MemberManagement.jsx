@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { getProjectMembers, removeProjectMember } from "../../api/projects";
+import { searchUsers } from "../../api/users";
 import { sendProjectInvitation } from "../../api/invitations";
 
 export default function MemberManagement({ projectId, token, isAdmin }) {
   const [members, setMembers] = useState([]);
   const [memberEmail, setMemberEmail] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
@@ -29,6 +32,36 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
     }
   }, [projectId, token]);
 
+  const handleMemberInputChange = async (value) => {
+    setMemberEmail(value);
+    setSuggestions([]);
+
+    const normalized = value.trim();
+    if (normalized.length < 2) {
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const data = await searchUsers(normalized, token);
+      const existingIds = members.map((member) => member.user?._id || member.user);
+      setSuggestions(
+        (data.users || [])
+          .filter((user) => !existingIds.includes(user._id))
+          .slice(0, 6),
+      );
+    } catch (error) {
+      console.error("Failed to search users:", error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSuggestionSelect = (user) => {
+    setMemberEmail(user.email);
+    setSuggestions([]);
+  };
+
   const handleAddMember = async (e) => {
     e.preventDefault();
     if (!memberEmail.trim()) return;
@@ -44,6 +77,7 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
       );
 
       setMemberEmail("");
+      setSuggestions([]);
       alert("Invitation sent successfully");
     } catch (error) {
       console.error("Failed to send invitation:", error);
@@ -85,22 +119,49 @@ export default function MemberManagement({ projectId, token, isAdmin }) {
       )}
 
       {isAdmin && (
-        <form onSubmit={handleAddMember} className="mt-4 flex gap-2">
-          <input
-            type="email"
-            value={memberEmail}
-            onChange={(e) => setMemberEmail(e.target.value)}
-            placeholder="Enter member email"
-            className="flex-1 rounded-xl border border-slate-300 px-4 py-2 text-black outline-none focus:ring-2 focus:ring-sky-400"
-          />
-          <button
-            type="submit"
-            disabled={adding}
-            className="rounded-xl bg-sky-500 px-4 py-2 font-medium text-black transition hover:bg-sky-600 disabled:opacity-70"
-          >
-            {adding ? "Sending..." : "Send Invite"}
-          </button>
-        </form>
+        <div className="mt-4">
+          <form onSubmit={handleAddMember} className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={memberEmail}
+                onChange={(e) => handleMemberInputChange(e.target.value)}
+                placeholder="Find member by username or email"
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 text-black outline-none focus:ring-2 focus:ring-sky-400"
+              />
+              {searching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                  Searching...
+                </div>
+              )}
+              {suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-xl">
+                  {suggestions.map((user) => (
+                    <button
+                      key={user._id}
+                      type="button"
+                      onClick={() => handleSuggestionSelect(user)}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-100"
+                    >
+                      <span>{user.username}</span>
+                      <span className="text-xs text-slate-500">{user.email}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button
+              type="submit"
+              disabled={adding}
+              className="rounded-xl bg-sky-500 px-4 py-2 font-medium text-black transition hover:bg-sky-600 disabled:opacity-70"
+            >
+              {adding ? "Sending..." : "Send Invite"}
+            </button>
+          </form>
+          <p className="mt-2 text-xs text-slate-500">
+            Search by username or email to invite existing users.
+          </p>
+        </div>
       )}
 
       <div className="mt-4 space-y-3">
