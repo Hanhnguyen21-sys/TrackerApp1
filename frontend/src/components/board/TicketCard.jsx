@@ -1,11 +1,12 @@
-import { Pencil, X } from "lucide-react";
+import { Pencil, X, Eye } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
 export default function TicketCard({
   ticket,
   onDeleteTicket,
-  onEditTicket, // new prop
+  onEditTicket,
+  onViewTicket,
 }) {
   const {
     attributes,
@@ -46,6 +47,14 @@ export default function TicketCard({
 
         <div className="flex items-center gap-1 shrink-0">
           <button
+            onClick={() => onViewTicket?.(ticket)}
+            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
+            title="View ticket details"
+          >
+            <Eye size={16} />
+          </button>
+
+          <button
             onClick={() => onEditTicket(ticket)}
             className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
             title="Edit ticket"
@@ -84,7 +93,7 @@ export default function TicketCard({
       )}
 
       <div className="mt-3 text-xs text-slate-400">
-        {ticket.assignee?.name || "Unassigned"}
+        {ticket.assignee?.username || ticket.assignee?.email || "Unassigned"}
       </div>
     </div>
   );

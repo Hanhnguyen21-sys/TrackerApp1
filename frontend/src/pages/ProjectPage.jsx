@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   DndContext,
   PointerSensor,
@@ -23,16 +23,20 @@ import {
   getTicketsByProject,
   moveTicket,
   updateTicket,
+  getTicketDetails,
+  addTicketComment,
 } from "../api/tickets";
 import Column from "../components/board/Column";
 import MemberManagement from "../components/project/MemberManagement";
 import Navbar from "../components/layout/NavBar";
 import TicketModal from "../components/modal/TicketModal";
+import TicketDetailsModal from "../components/modal/TicketDetailsModal";
 
 export default function ProjectPage() {
   const { projectId } = useParams();
   const { token, user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [project, setProject] = useState(null);
   const [columns, setColumns] = useState([]);
@@ -50,6 +54,12 @@ export default function ProjectPage() {
   const [editingTicket, setEditingTicket] = useState(null);
   const [selectedColumnId, setSelectedColumnId] = useState(null);
   const [savingTicket, setSavingTicket] = useState(false);
+  const [showTicketDetails, setShowTicketDetails] = useState(false);
+  const [detailTicket, setDetailTicket] = useState(null);
+  const [detailComments, setDetailComments] = useState([]);
+  const [detailActivity, setDetailActivity] = useState([]);
+  const [commentText, setCommentText] = useState("");
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -85,6 +95,13 @@ export default function ProjectPage() {
     }
   }, [projectId, token]);
 
+  useEffect(() => {
+    const ticketId = searchParams.get("ticketId");
+    if (ticketId && token) {
+      loadTicketDetails(ticketId);
+    }
+  }, [searchParams, token]);
+
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
 
@@ -106,6 +123,22 @@ export default function ProjectPage() {
 
     return grouped;
   }, [columns, tickets]);
+
+  const assigneeOptions = useMemo(() => {
+    return (
+      project?.members
+        ?.filter((member) => member.status === "active")
+        .map((member) => {
+          const user = member.user;
+          const id = typeof user === "string" ? user : user?._id;
+          const name =
+            typeof user === "string"
+              ? user
+              : user?.username || user?.email || "Unknown";
+          return { id, name };
+        }) || []
+    );
+  }, [project]);
 
   const getTicketById = (ticketId) =>
     tickets.find((ticket) => ticket._id === ticketId);
@@ -258,6 +291,50 @@ export default function ProjectPage() {
     }
   };
 
+  const openTicketDetails = async (ticket) => {
+    if (!ticket?._id) return;
+    await loadTicketDetails(ticket._id);
+  };
+
+  const closeTicketDetails = () => {
+    setShowTicketDetails(false);
+    setDetailTicket(null);
+    setDetailComments([]);
+    setDetailActivity([]);
+    setCommentText("");
+  };
+
+  const loadTicketDetails = async (ticketId) => {
+    try {
+      const data = await getTicketDetails(ticketId, token);
+      setDetailTicket(data.ticket || data);
+      setDetailComments(data.comments || []);
+      setDetailActivity(data.activity || []);
+      setShowTicketDetails(true);
+    } catch (error) {
+      console.error("Failed to load ticket details:", error);
+      setError(
+        error.response?.data?.message || "Failed to load ticket details",
+      );
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!detailTicket || !commentText.trim()) return;
+    try {
+      setCommentSubmitting(true);
+      setError("");
+      const data = await addTicketComment(detailTicket._id, commentText, token);
+      const newComment = data.comment || data;
+      setDetailComments((prev) => [...prev, newComment]);
+      setCommentText("");
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to add comment");
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
   const handleDragEnd = async (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -380,13 +457,26 @@ export default function ProjectPage() {
     }
   };
 
-  const isAdmin = project?.members?.some((member) => {
-    const memberUserId =
-      typeof member.user === "string" ? member.user : member.user?._id;
+  const isAdmin = useMemo(() => {
+    const currentUserId = user?._id || user?.id;
 
-    return memberUserId === user?._id && member.role === "admin";
-  });
+    if (!currentUserId || !project?.members) return false;
 
+    return project.members.some((member) => {
+      const memberUserId =
+        typeof member.user === "string"
+          ? member.user
+          : member.user?._id || member.user?.id;
+
+      return (
+        String(memberUserId) === String(currentUserId) &&
+        member.role?.toLowerCase() === "admin"
+      );
+    });
+  }, [project, user]);
+  console.log("USER:", user);
+  console.log("PROJECT MEMBERS:", project?.members);
+  console.log("isAdmin:", isAdmin);
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
@@ -439,13 +529,6 @@ export default function ProjectPage() {
                 + Add Member
               </button>
             )}
-
-            <button
-              onClick={() => setShowColumnForm(true)}
-              className="rounded-lg bg-white/25 border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/35 transition"
-            >
-              + Add another list
-            </button>
           </div>
         </div>
 
@@ -477,6 +560,7 @@ export default function ProjectPage() {
                 tickets={ticketsByColumn[column._id] || []}
                 onOpenTicketModal={openTicketModal}
                 onEditTicket={handleOpenEditTicket}
+                onViewTicket={openTicketDetails}
                 onDeleteTicket={handleDeleteTicket}
                 onRenameColumn={handleRenameColumn}
                 onDeleteColumn={handleDeleteColumn}
@@ -557,7 +641,7 @@ export default function ProjectPage() {
                   disabled={creatingColumn}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-70"
                 >
-                  {creatingColumn ? "Creating..." : "Create List"}
+                  {creatingColumn ? "Creating..." : "Create Column"}
                 </button>
               </div>
             </form>
@@ -571,7 +655,24 @@ export default function ProjectPage() {
         onSubmit={handleSubmitTicketModal}
         initialData={editingTicket}
         mode={editingTicket ? "edit" : "create"}
+        assigneeOptions={assigneeOptions}
         isSubmitting={savingTicket}
+      />
+
+      <TicketDetailsModal
+        isOpen={showTicketDetails}
+        onClose={() => {
+          closeTicketDetails();
+          setSearchParams({});
+        }}
+        ticket={detailTicket}
+        comments={detailComments}
+        activity={detailActivity}
+        commentText={commentText}
+        setCommentText={setCommentText}
+        onSubmitComment={handleSubmitComment}
+        isCommentSubmitting={commentSubmitting}
+        members={project?.members || []}
       />
 
       {showMemberPanel && (

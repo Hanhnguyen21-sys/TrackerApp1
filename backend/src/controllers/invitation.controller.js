@@ -1,33 +1,35 @@
 import Invitation from "../models/Invitation.js";
 import Project from "../models/Project.js";
 import User from "../models/User.js";
+import { sendError, sendSuccess } from "../utils/apiResponse.js";
+import { validateEmail } from "../utils/validators.js";
 
 export const createInvitation = async (req, res) => {
   try {
     const { projectId } = req.params;
     const { email } = req.body;
 
-    if (!email?.trim()) {
-      return res.status(400).json({ message: "Email is required" });
+    if (!validateEmail(email)) {
+      return sendError(res, 'A valid email is required', 400);
     }
 
     const project = await Project.findById(projectId);
     if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+      return sendError(res, 'Project not found', 404);
     }
 
     const isAdmin = project.members.some((member) => {
       const memberUserId = member.user.toString();
-      return memberUserId === req.user._id.toString() && member.role === "admin";
+      return memberUserId === req.user._id.toString() && member.role === 'admin';
     });
 
     if (!isAdmin) {
-      return res.status(403).json({ message: "Only project admins can send invitations" });
+      return sendError(res, 'Only project admins can send invitations', 403);
     }
 
-    const receiver = await User.findOne({ email: email.trim() });
+    const receiver = await User.findOne({ email: email.trim().toLowerCase() });
     if (!receiver) {
-      return res.status(404).json({ message: "User with that email was not found" });
+      return sendError(res, 'User with that email was not found', 404);
     }
 
     const alreadyMember = project.members.some(
@@ -35,17 +37,17 @@ export const createInvitation = async (req, res) => {
     );
 
     if (alreadyMember) {
-      return res.status(400).json({ message: "User is already a project member" });
+      return sendError(res, 'User is already a project member', 400);
     }
 
     const existingPendingInvite = await Invitation.findOne({
       project: projectId,
       receiver: receiver._id,
-      status: "pending",
+      status: 'pending',
     });
 
     if (existingPendingInvite) {
-      return res.status(400).json({ message: "An invitation is already pending for this user" });
+      return sendError(res, 'An invitation is already pending for this user', 400);
     }
 
     const invitation = await Invitation.create({
@@ -55,17 +57,14 @@ export const createInvitation = async (req, res) => {
     });
 
     const populatedInvitation = await Invitation.findById(invitation._id)
-      .populate("project", "name")
-      .populate("sender", "username email")
-      .populate("receiver", "username email");
+      .populate('project', 'name')
+      .populate('sender', 'username email')
+      .populate('receiver', 'username email');
 
-    res.status(201).json({
-      message: "Invitation sent successfully",
-      invitation: populatedInvitation,
-    });
+    return sendSuccess(res, { invitation: populatedInvitation }, 'Invitation sent successfully', 201);
   } catch (error) {
-    console.error("createInvitation error:", error);
-    res.status(500).json({ message: "Failed to send invitation" });
+    console.error('createInvitation error:', error);
+    return sendError(res, 'Failed to send invitation', 500);
   }
 };
 
@@ -73,16 +72,16 @@ export const getMyInvitations = async (req, res) => {
   try {
     const invitations = await Invitation.find({
       receiver: req.user._id,
-      status: "pending",
+      status: 'pending',
     })
-      .populate("project", "name description")
-      .populate("sender", "username email")
+      .populate('project', 'name description')
+      .populate('sender', 'username email')
       .sort({ createdAt: -1 });
 
-    res.json({ invitations });
+    return sendSuccess(res, { invitations }, 'Invitations fetched successfully');
   } catch (error) {
-    console.error("getMyInvitations error:", error);
-    res.status(500).json({ message: "Failed to load invitations" });
+    console.error('getMyInvitations error:', error);
+    return sendError(res, 'Failed to load invitations', 500);
   }
 };
 
@@ -92,20 +91,20 @@ export const acceptInvitation = async (req, res) => {
 
     const invitation = await Invitation.findById(invitationId);
     if (!invitation) {
-      return res.status(404).json({ message: "Invitation not found" });
+      return sendError(res, 'Invitation not found', 404);
     }
 
     if (invitation.receiver.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not allowed to accept this invitation" });
+      return sendError(res, 'Not allowed to accept this invitation', 403);
     }
 
-    if (invitation.status !== "pending") {
-      return res.status(400).json({ message: "Invitation has already been handled" });
+    if (invitation.status !== 'pending') {
+      return sendError(res, 'Invitation has already been handled', 400);
     }
 
     const project = await Project.findById(invitation.project);
     if (!project) {
-      return res.status(404).json({ message: "Project not found" });
+      return sendError(res, 'Project not found', 404);
     }
 
     const alreadyMember = project.members.some(
@@ -115,19 +114,19 @@ export const acceptInvitation = async (req, res) => {
     if (!alreadyMember) {
       project.members.push({
         user: req.user._id,
-        role: "member",
-        status: "active",
+        role: 'member',
+        status: 'active',
       });
       await project.save();
     }
 
-    invitation.status = "accepted";
+    invitation.status = 'accepted';
     await invitation.save();
 
-    res.json({ message: "Invitation accepted successfully" });
+    return sendSuccess(res, {}, 'Invitation accepted successfully');
   } catch (error) {
-    console.error("acceptInvitation error:", error);
-    res.status(500).json({ message: "Failed to accept invitation" });
+    console.error('acceptInvitation error:', error);
+    return sendError(res, 'Failed to accept invitation', 500);
   }
 };
 
@@ -137,23 +136,23 @@ export const rejectInvitation = async (req, res) => {
 
     const invitation = await Invitation.findById(invitationId);
     if (!invitation) {
-      return res.status(404).json({ message: "Invitation not found" });
+      return sendError(res, 'Invitation not found', 404);
     }
 
     if (invitation.receiver.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: "Not allowed to reject this invitation" });
+      return sendError(res, 'Not allowed to reject this invitation', 403);
     }
 
-    if (invitation.status !== "pending") {
-      return res.status(400).json({ message: "Invitation has already been handled" });
+    if (invitation.status !== 'pending') {
+      return sendError(res, 'Invitation has already been handled', 400);
     }
 
-    invitation.status = "rejected";
+    invitation.status = 'rejected';
     await invitation.save();
 
-    res.json({ message: "Invitation rejected successfully" });
+    return sendSuccess(res, {}, 'Invitation rejected successfully');
   } catch (error) {
-    console.error("rejectInvitation error:", error);
-    res.status(500).json({ message: "Failed to reject invitation" });
+    console.error('rejectInvitation error:', error);
+    return sendError(res, 'Failed to reject invitation', 500);
   }
 };
