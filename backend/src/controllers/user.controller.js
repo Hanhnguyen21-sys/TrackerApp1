@@ -1,19 +1,36 @@
 import User from "../models/User.js";
+import { sendError, sendSuccess } from "../utils/apiResponse.js";
+import { isNonEmptyString, validateEmail } from "../utils/validators.js";
 
-
-export const searchUserByEmail = async (req, res) => {
+export const searchUsers = async (req, res) => {
     try {
-        const { email } = req.query;
-        if (!email) {
-            return res.status(400).json({ message: "Email query parameter is required" });
+        const { query, email } = req.query;
+
+        if (isNonEmptyString(email)) {
+            if (!validateEmail(email)) {
+                return sendError(res, "A valid email query parameter is required", 400);
+            }
+            const user = await User.findOne({ email: email.trim().toLowerCase() }).select('username email');
+            if (!user) {
+                return sendError(res, "User not found", 404);
+            }
+            return sendSuccess(res, { users: [user] }, "User fetched successfully");
         }
-        const user = await User.findOne({ email: email.trim() }).select('username email');
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
+
+        if (!isNonEmptyString(query)) {
+            return sendError(res, "Search query is required", 400);
         }
-        res.status(200).json({ user });
+
+        const regex = new RegExp(query.trim(), 'i');
+        const users = await User.find({
+            $or: [{ username: regex }, { email: regex }],
+        })
+            .select('username email')
+            .limit(12);
+
+        return sendSuccess(res, { users }, "Users fetched successfully");
     } catch (error) {
-        console.error("Error searching user by email:", error.message);
-        res.status(500).json({ message: "Server error" });
+        console.error("Error searching users:", error.message);
+        return sendError(res, "Server error", 500);
     }
-}
+};

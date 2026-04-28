@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
@@ -12,6 +14,7 @@ export default function Register() {
   });
 
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -20,10 +23,15 @@ export default function Register() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(formData);
-    navigate("/login");
+    setError("");
+    try {
+      await register(formData);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
+    }
   };
 
   return (
@@ -37,6 +45,11 @@ export default function Register() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+            {error && (
+              <div className="rounded-xl bg-red-100 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
             <input
               type="text"
               name="name"

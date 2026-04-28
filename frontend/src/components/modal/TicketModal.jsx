@@ -131,14 +131,17 @@ export default function TicketModal({
                 Type
               </label>
               <select
-                name="type"
-                value={formData.type}
+                name="assignee"
+                value={formData.assignee}
                 onChange={handleChange}
                 className="w-full text-black rounded-xl border border-slate-300 px-3 py-2 bg-white"
               >
-                <option value="Task">Task</option>
-                <option value="Bug">Bug</option>
-                <option value="Feature">Feature</option>
+                <option value="">Unassigned</option>
+                {assigneeOptions.map((member) => (
+                  <option key={member.id} value={member.id}>
+                    {member.name}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
