@@ -571,7 +571,9 @@ export default function ProjectPage() {
         onSubmit={handleSubmitTicketModal}
         initialData={editingTicket}
         mode={editingTicket ? "edit" : "create"}
+        members={project?.members || []}
         isSubmitting={savingTicket}
+        canAssign={isAdmin}
       />
 
       {showMemberPanel && (

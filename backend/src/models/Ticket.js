@@ -1,51 +1,54 @@
 import mongoose from "mongoose";
 
-const ticketSchema = new mongoose.Schema({
-    project:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Project',
-        required: true,
+const ticketSchema = new mongoose.Schema(
+  {
+    project: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Project",
+      required: true,
     },
-    column:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Column',
-        required: true, 
+    column: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Column",
+      required: true,
     },
-    title:{
-        type: String,
-        required: true,
+    title: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    description:{
-        type: String,
-        default: '',
-        trim: true,
+    description: {
+      type: String,
+      default: "",
+      trim: true,
     },
-    type:{
-        type: String,
-        enum: ['Task', 'Bug', 'Feature'],
-        default: 'Task',
+    type: {
+      type: String,
+      enum: ["Task", "Bug", "Feature"],
+      default: "Task",
     },
-    priority:{
-        type: String,
-        enum: ['Low', 'Medium', 'High'],
-        default: 'Medium',
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High"],
+      default: "Medium",
     },
-    reporter:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true,
+    reporter: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    assignee:{
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: 'User',    
-        default: null,
+    assignees: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
     },
-    order:{
-        type: Number,
-        required: true,
-        default: 0,
+    order: {
+      type: Number,
+      required: true,
+      default: 0,
     },
-}, { timestamps: true });
+  },
+  { timestamps: true }
+);
 
-export default mongoose.model('Ticket', ticketSchema);
-
+export default mongoose.model("Ticket", ticketSchema);
