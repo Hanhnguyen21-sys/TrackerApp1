@@ -58,7 +58,7 @@ export default function ProjectPage() {
   const [detailTicket, setDetailTicket] = useState(null);
   const [detailComments, setDetailComments] = useState([]);
   const [detailActivity, setDetailActivity] = useState([]);
-  const [commentText, setCommentText] = useState('');
+  const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const sensors = useSensors(
@@ -96,7 +96,7 @@ export default function ProjectPage() {
   }, [projectId, token]);
 
   useEffect(() => {
-    const ticketId = searchParams.get('ticketId');
+    const ticketId = searchParams.get("ticketId");
     if (ticketId && token) {
       loadTicketDetails(ticketId);
     }
@@ -313,7 +313,9 @@ export default function ProjectPage() {
       setShowTicketDetails(true);
     } catch (error) {
       console.error("Failed to load ticket details:", error);
-      setError(error.response?.data?.message || "Failed to load ticket details");
+      setError(
+        error.response?.data?.message || "Failed to load ticket details",
+      );
     }
   };
 
@@ -455,13 +457,26 @@ export default function ProjectPage() {
     }
   };
 
-  const isAdmin = project?.members?.some((member) => {
-    const memberUserId =
-      typeof member.user === "string" ? member.user : member.user?._id;
+  const isAdmin = useMemo(() => {
+    const currentUserId = user?._id || user?.id;
 
-    return memberUserId === user?._id && member.role === "admin";
-  });
+    if (!currentUserId || !project?.members) return false;
 
+    return project.members.some((member) => {
+      const memberUserId =
+        typeof member.user === "string"
+          ? member.user
+          : member.user?._id || member.user?.id;
+
+      return (
+        String(memberUserId) === String(currentUserId) &&
+        member.role?.toLowerCase() === "admin"
+      );
+    });
+  }, [project, user]);
+  console.log("USER:", user);
+  console.log("PROJECT MEMBERS:", project?.members);
+  console.log("isAdmin:", isAdmin);
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
@@ -626,7 +641,7 @@ export default function ProjectPage() {
                   disabled={creatingColumn}
                   className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition disabled:opacity-70"
                 >
-                  {creatingColumn ? "Creating..." : "Create List"}
+                  {creatingColumn ? "Creating..." : "Create Column"}
                 </button>
               </div>
             </form>

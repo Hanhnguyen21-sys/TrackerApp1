@@ -1,37 +1,55 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { getMe, loginUser, registerUser } from "../api/auth";
 
-// use for authentication state management across the app
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null); // current logged in user
-  const [token, setToken] = useState(localStorage.getItem("token") || ""); // JWT token for API requests
-  const [loading, setLoading] = useState(true); // checking if user data is being loaded
+  const [user, setUser] = useState(() => {
+    const storedUser = localStorage.getItem("user");
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
-  // save token and user data to localStorage and state
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem("token") || "";
+  });
+
+  const [loading, setLoading] = useState(true);
+
   const saveAuth = (token, user) => {
+    console.log("SAVE AUTH TOKEN:", token);
+    console.log("SAVE AUTH USER:", user);
+
     localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+
     setToken(token);
     setUser(user);
   };
 
-  // clear token and user data from localStorage and state
   const clearAuth = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
     setToken("");
     setUser(null);
   };
 
   const register = async (formData) => {
     const data = await registerUser(formData);
+
+    console.log("DEBUG REGISTER RESPONSE:", data);
+
     saveAuth(data.token, data.user);
     return data;
   };
 
   const login = async (formData) => {
     const data = await loginUser(formData);
+
+    console.log("DEBUG LOGIN RESPONSE:", data);
+    console.log("DEBUG LOGIN USER:", data.user);
+    console.log("DEBUG LOGIN TOKEN:", data.token);
+
     saveAuth(data.token, data.user);
     return data;
   };
@@ -40,9 +58,11 @@ export const AuthProvider = ({ children }) => {
     clearAuth();
   };
 
-  // retrieve user data on app load if token exists
   useEffect(() => {
     const loadUser = async () => {
+      console.log("AUTH LOAD TOKEN:", token);
+      console.log("AUTH LOAD STORED USER:", localStorage.getItem("user"));
+
       if (!token) {
         setLoading(false);
         return;
@@ -50,7 +70,15 @@ export const AuthProvider = ({ children }) => {
 
       try {
         const userData = await getMe(token);
-        setUser(userData);
+
+        console.log("DEBUG GET ME RESPONSE:", userData);
+
+        const loadedUser = userData.user || userData;
+
+        console.log("DEBUG LOADED USER:", loadedUser);
+
+        localStorage.setItem("user", JSON.stringify(loadedUser));
+        setUser(loadedUser);
       } catch (error) {
         console.error("Failed to load user:", error);
         clearAuth();
