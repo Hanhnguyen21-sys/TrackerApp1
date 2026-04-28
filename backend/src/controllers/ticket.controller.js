@@ -296,12 +296,12 @@ export const addTicketComment = async (req, res) => {
     if (!ticket) {
       return sendError(res, 'Ticket not found', 404);
     }
-
+    
     const mentionNames = extractMentionUsernames(body);
     const mentionedUsers = mentionNames.length
       ? await User.find({ username: { $in: mentionNames } }).select('username email')
       : [];
-
+      
     const comment = new Comment({
       ticket: ticketId,
       author: req.user._id,
