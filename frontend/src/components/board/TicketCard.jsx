@@ -2,12 +2,7 @@ import { Pencil, X, Eye } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export default function TicketCard({
-  ticket,
-  onDeleteTicket,
-  onEditTicket,
-  onViewTicket,
-}) {
+export default function TicketCard({ ticket, onDeleteTicket, onEditTicket }) {
   const {
     attributes,
     listeners,
@@ -28,6 +23,13 @@ export default function TicketCard({
     transition,
   };
 
+  const assigneeNames =
+    Array.isArray(ticket.assignees) && ticket.assignees.length > 0
+      ? ticket.assignees
+          .map((user) => (typeof user === "string" ? user : user.username))
+          .join(", ")
+      : "Unassigned";
+
   return (
     <div
       ref={setNodeRef}
@@ -42,10 +44,10 @@ export default function TicketCard({
           {...attributes}
           {...listeners}
         >
-          <h3 className="font-medium text-slate-900 pr-2">{ticket.title}</h3>
+          <h3 className="pr-2 font-medium text-slate-900">{ticket.title}</h3>
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex shrink-0 items-center gap-1">
           <button
             onClick={() => onViewTicket?.(ticket)}
             className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
@@ -56,7 +58,7 @@ export default function TicketCard({
 
           <button
             onClick={() => onEditTicket(ticket)}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-sky-600"
             title="Edit ticket"
           >
             <Pencil size={16} />
@@ -71,7 +73,7 @@ export default function TicketCard({
                 onDeleteTicket(ticket._id);
               }
             }}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+            className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-50 hover:text-red-600"
             title="Delete ticket"
           >
             <X size={16} />
@@ -80,21 +82,19 @@ export default function TicketCard({
       </div>
 
       <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-2 py-1">
+        <span className="rounded-full bg-sky-100 px-2 py-1 text-xs font-medium text-sky-700">
           {ticket.priority || "Medium"}
         </span>
         <span className="text-xs text-slate-400">{ticket.type || "Task"}</span>
       </div>
 
       {ticket.description && (
-        <p className="text-sm text-slate-500 mt-3 line-clamp-3">
+        <p className="mt-3 line-clamp-3 text-sm text-slate-500">
           {ticket.description}
         </p>
       )}
 
-      <div className="mt-3 text-xs text-slate-400">
-        {ticket.assignee?.username || ticket.assignee?.email || "Unassigned"}
-      </div>
+      <div className="mt-3 text-xs text-slate-400">{assigneeNames}</div>
     </div>
   );
 }
