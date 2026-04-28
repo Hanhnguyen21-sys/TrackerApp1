@@ -120,22 +120,26 @@ export default function Column({
       </div>
 
       <div ref={setNodeRef} className="min-h-[40px]">
-        <SortableContext
-          items={tickets.map((ticket) => ticket._id)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-3">
-            {tickets.map((ticket) => (
-              <TicketCard
-                key={ticket._id}
-                ticket={ticket}
-                onDeleteTicket={onDeleteTicket}
-                onEditTicket={handleOpenEditTicket}
-                onViewTicket={onViewTicket}
-              />
-            ))}
-          </div>
-        </SortableContext>
+        <div className="max-h-[420px] overflow-y-auto pr-1">
+          <SortableContext
+            items={tickets.map((ticket) => ticket._id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-3">
+              {[...tickets]
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .map((ticket) => (
+                  <TicketCard
+                    key={ticket._id}
+                    ticket={ticket}
+                    onDeleteTicket={onDeleteTicket}
+                    onEditTicket={handleOpenEditTicket}
+                    onViewTicket={onViewTicket}
+                  />
+                ))}
+            </div>
+          </SortableContext>
+        </div>
       </div>
 
       <button

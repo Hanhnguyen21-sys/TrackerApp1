@@ -321,12 +321,20 @@ export default function NavBar({
                           key={notification._id}
                           type="button"
                           onClick={() => handleNotificationClick(notification)}
-                          className={`w-full rounded-lg px-2 py-3 text-left text-sm transition ${
+                          className={`relative w-full text-left py-3 text-sm transition ${
                             notification.read
                               ? "text-slate-300"
                               : "text-white hover:bg-white/5"
                           }`}
+                          className={`relative w-full text-left py-3 text-sm transition ${
+                            !notification.read
+                              ? "bg-white/5 text-white hover:bg-white/10"
+                              : "text-slate-300"
+                          }`}
                         >
+                          {!notification.read && (
+                            <span className="absolute right-2 top-3 h-2 w-2 rounded-full bg-red-500"></span>
+                          )}
                           <div className="font-medium">
                             {getNotificationTitle(notification)}
                           </div>

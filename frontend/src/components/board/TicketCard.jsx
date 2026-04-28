@@ -27,14 +27,33 @@ export default function TicketCard({
     transform: CSS.Transform.toString(transform),
     transition,
   };
+  const getDueDateStatus = (dueDate) => {
+    if (!dueDate) return "none";
 
+    const now = new Date();
+    const due = new Date(dueDate);
+
+    const diffMs = due - now;
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    if (diffMs < 0) return "overdue";
+    if (diffMs <= oneDay) return "soon";
+
+    return "normal";
+  };
+
+  const dueStatus = getDueDateStatus(ticket.dueDate);
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-white rounded-xl border border-slate-200 p-4 shadow-sm ${
-        isDragging ? "opacity-50" : ""
-      }`}
+      className={`rounded-xl border p-4 shadow-sm transition ${
+        dueStatus === "overdue"
+          ? "border-red-400 bg-red-50"
+          : dueStatus === "soon"
+            ? "border-yellow-400 bg-yellow-50"
+            : "border-slate-200 bg-white"
+      } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div
@@ -91,7 +110,24 @@ export default function TicketCard({
           {ticket.description}
         </p>
       )}
-
+      {ticket.dueDate && (
+        <div
+          className={`mt-3 inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+            dueStatus === "overdue"
+              ? "bg-red-100 text-red-700"
+              : dueStatus === "soon"
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {dueStatus === "overdue"
+            ? "Overdue"
+            : dueStatus === "soon"
+              ? "Due soon"
+              : "Due"}{" "}
+          • {new Date(ticket.dueDate).toLocaleDateString()}
+        </div>
+      )}
       <div className="mt-3 text-xs text-slate-400">
         {ticket.assignee?.username || ticket.assignee?.email || "Unassigned"}
       </div>
