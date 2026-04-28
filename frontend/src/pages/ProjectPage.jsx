@@ -514,13 +514,6 @@ export default function ProjectPage() {
                 + Add Member
               </button>
             )}
-
-            <button
-              onClick={() => setShowColumnForm(true)}
-              className="rounded-lg bg-white/25 border border-white/30 px-4 py-2 text-sm font-medium text-white hover:bg-white/35 transition"
-            >
-              + Add another list
-            </button>
           </div>
         </div>
 
