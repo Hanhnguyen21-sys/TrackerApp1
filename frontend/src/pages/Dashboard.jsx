@@ -7,6 +7,9 @@ import {
   deleteProject,
   updateProject,
 } from "../api/projects";
+import { generateProjectAI } from "../api/ai";
+import { createColumn } from "../api/columns";
+import { createTicket } from "../api/tickets";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import {
   Pencil,
@@ -214,6 +217,78 @@ export default function Dashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  //AI integration
+  const handleGenerateWithAI = async () => {
+    try {
+      if (!formData.name.trim()) {
+        setError("Please enter a project name first");
+        return;
+      }
+
+      setCreating(true);
+      setError("");
+
+      // 1. Ask AI for board structure
+      const aiData = await generateProjectAI(formData.name, token);
+
+      const aiColumns = aiData.columns || aiData.data?.columns || [];
+
+      if (!aiColumns.length) {
+        throw new Error("AI did not return any columns");
+      }
+
+      // 2. Create project first
+      const projectData = await createProject(formData, token);
+      const createdProject = projectData.project || projectData;
+
+      // 3. Create AI columns and tickets
+      for (const column of aiColumns) {
+        const columnData = await createColumn(
+          createdProject._id,
+          {
+            title: column.title,
+          },
+          token,
+        );
+
+        const createdColumn = columnData.column || columnData;
+
+        for (const task of column.tasks || []) {
+          await createTicket(
+            createdProject._id,
+            {
+              columnId: createdColumn._id,
+              title: task.title,
+              description: task.description || "",
+              type: "Task",
+              priority: task.priority || "Medium",
+              assignee: null,
+              dueDate: null,
+            },
+            token,
+          );
+        }
+      }
+
+      // 4. Update UI and go to project page
+      setProjects((prev) => [createdProject, ...prev]);
+      setFormData({ name: "", description: "" });
+      setShowCreateModal(false);
+
+      navigate(`/projects/${createdProject._id}`);
+    } catch (error) {
+      console.error("❌ AI project creation failed:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to generate AI project",
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#1d2125] text-white">
       <DashboardLayout
@@ -429,6 +504,14 @@ export default function Dashboard() {
               />
 
               <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateWithAI}
+                  disabled={!formData.name.trim() || creating}
+                  className="inline-flex items-center gap-2 rounded-lg border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-300 hover:bg-sky-500/20 disabled:opacity-50"
+                >
+                  {creating ? "Generating..." : "✨ Generate with AI"}
+                </button>
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}

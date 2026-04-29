@@ -6,6 +6,7 @@ const defaultForm = {
   type: "Task",
   priority: "Medium",
   assignee: "",
+  dueDate: "",
 };
 
 export default function TicketModal({
@@ -29,6 +30,7 @@ export default function TicketModal({
           typeof initialData.assignee === "string"
             ? initialData.assignee
             : initialData.assignee?._id || "",
+        dueDate: initialData.dueDate ? initialData.dueDate.slice(0, 10) : "",
       });
     } else {
       setFormData(defaultForm);
@@ -44,7 +46,12 @@ export default function TicketModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await onSubmit(formData);
+
+    await onSubmit({
+      ...formData,
+      dueDate: formData.dueDate || null,
+    });
+
     onClose();
   };
 
@@ -57,6 +64,7 @@ export default function TicketModal({
           <h2 className="text-lg font-semibold text-slate-900">
             {mode === "edit" ? "Edit ticket" : "Create ticket"}
           </h2>
+
           <button
             onClick={onClose}
             className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100"
@@ -95,56 +103,71 @@ export default function TicketModal({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Priority
-                </label>
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Type
-                </label>
-                <select
-                  name="type"
-                  value={formData.type}
-                  onChange={handleChange}
-                  className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
-                >
-                  <option value="Task">Task</option>
-                  <option value="Bug">Bug</option>
-                  <option value="Feature">Feature</option>
-                </select>
-              </div>
-            </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Assignee
+                Priority
               </label>
               <select
-                name="assignee"
-                value={formData.assignee}
+                name="priority"
+                value={formData.priority}
                 onChange={handleChange}
                 className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
               >
-                <option value="">Unassigned</option>
-                {assigneeOptions.map((member) => (
-                  <option key={member.id} value={member.id}>
-                    {member.name}
-                  </option>
-                ))}
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
               </select>
             </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Type
+              </label>
+              <select
+                name="type"
+                value={formData.type}
+                onChange={handleChange}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
+              >
+                <option value="Task">Task</option>
+                <option value="Bug">Bug</option>
+                <option value="Feature">Feature</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Assignee
+            </label>
+            <select
+              name="assignee"
+              value={formData.assignee}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
+            >
+              <option value="">Unassigned</option>
+              {assigneeOptions.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Due Date
+            </label>
+            <input
+              type="date"
+              name="dueDate"
+              value={formData.dueDate}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
+            />
+          </div>
+
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
@@ -153,6 +176,7 @@ export default function TicketModal({
             >
               Cancel
             </button>
+
             <button
               type="submit"
               className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition"

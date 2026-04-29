@@ -16,9 +16,6 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const saveAuth = (token, user) => {
-    console.log("SAVE AUTH TOKEN:", token);
-    console.log("SAVE AUTH USER:", user);
-
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
 
@@ -37,18 +34,12 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     const data = await registerUser(formData);
 
-    console.log("DEBUG REGISTER RESPONSE:", data);
-
     saveAuth(data.token, data.user);
     return data;
   };
 
   const login = async (formData) => {
     const data = await loginUser(formData);
-
-    console.log("DEBUG LOGIN RESPONSE:", data);
-    console.log("DEBUG LOGIN USER:", data.user);
-    console.log("DEBUG LOGIN TOKEN:", data.token);
 
     saveAuth(data.token, data.user);
     return data;
@@ -60,9 +51,6 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const loadUser = async () => {
-      console.log("AUTH LOAD TOKEN:", token);
-      console.log("AUTH LOAD STORED USER:", localStorage.getItem("user"));
-
       if (!token) {
         setLoading(false);
         return;
@@ -71,11 +59,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const userData = await getMe(token);
 
-        console.log("DEBUG GET ME RESPONSE:", userData);
-
         const loadedUser = userData.user || userData;
-
-        console.log("DEBUG LOADED USER:", loadedUser);
 
         localStorage.setItem("user", JSON.stringify(loadedUser));
         setUser(loadedUser);

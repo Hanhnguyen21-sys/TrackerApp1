@@ -40,9 +40,13 @@ const ticketSchema = new mongoose.Schema({
         ref: 'User',
         default: null,
     },
-    dueDate:{
+    dueDate: {
         type: Date,
-        default: null,
+    default: null,
+    },
+    reminderSent: {
+        type: Boolean,
+        default: false,
     },
     order:{
         type: Number,

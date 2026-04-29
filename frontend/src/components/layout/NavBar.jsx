@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Search, Plus, LogOut, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
 import { useAuth } from "../../context/AuthContext";
 import {
   getMyInvitations,
   acceptInvitation,
   rejectInvitation,
 } from "../../api/invitations";
-import { getNotifications, markNotificationRead } from "../../api/notifications";
+import {
+  getNotifications,
+  markNotificationRead,
+} from "../../api/notifications";
 export default function NavBar({
   logout,
   searchTerm = "",
@@ -25,6 +29,7 @@ export default function NavBar({
   const [showNotifications, setShowNotifications] = useState(false);
   const [invitations, setInvitations] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const notificationsRef = useRef(null);
   const [loadingInvitations, setLoadingInvitations] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
 
@@ -35,42 +40,56 @@ export default function NavBar({
   const hasCreateButton = typeof setShowCreateModal === "function";
   const hasLogout = typeof logout === "function";
 
-  const unreadNotificationsCount = notifications.filter((notification) => !notification.read).length;
+  const unreadNotificationsCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
   const pendingInvitesCount = invitations.length;
   const unreadCount = pendingInvitesCount + unreadNotificationsCount;
-
   useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!token) return;
+    if (!token) return;
 
+    const fetchAllNotifications = async () => {
       try {
         setLoadingInvitations(true);
-        const invitationsData = await getMyInvitations(token);
-        setInvitations(invitationsData.invitations || []);
-      } catch (error) {
-        console.error("Failed to fetch invitations:", error);
-      } finally {
-        setLoadingInvitations(false);
-      }
-    };
-
-    const fetchMentionNotifications = async () => {
-      if (!token) return;
-
-      try {
         setLoadingNotifications(true);
-        const data = await getNotifications(token);
-        setNotifications(data.notifications || []);
+
+        const [invitationsData, notificationsData] = await Promise.all([
+          getMyInvitations(token),
+          getNotifications(token),
+        ]);
+
+        setInvitations(invitationsData.invitations || []);
+        setNotifications(notificationsData.notifications || []);
       } catch (error) {
         console.error("Failed to fetch notifications:", error);
       } finally {
+        setLoadingInvitations(false);
         setLoadingNotifications(false);
       }
     };
 
-    fetchNotifications();
-    fetchMentionNotifications();
+    fetchAllNotifications();
+
+    const intervalId = setInterval(fetchAllNotifications, 5000);
+
+    return () => clearInterval(intervalId);
   }, [token]);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target)
+      ) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleAcceptInvite = async (invitationId) => {
     try {
@@ -80,6 +99,18 @@ export default function NavBar({
       );
     } catch (error) {
       console.error("Failed to accept invitation:", error);
+    }
+  };
+  const getNotificationTitle = (notification) => {
+    switch (notification.type) {
+      case "dueDate":
+        return "Task due soon";
+      case "invite":
+        return "Project invitation";
+      case "mention":
+        return `${notification.sender?.username || "Someone"} mentioned you`;
+      default:
+        return "New notification";
     }
   };
 
@@ -110,9 +141,11 @@ export default function NavBar({
       console.error("Failed to mark notification read:", error);
     }
 
-    if (notification.type === 'mention') {
-      const projectId = notification.targetProject?._id || notification.targetProject;
-      const ticketId = notification.targetTicket?._id || notification.targetTicket;
+    if (notification.type === "mention" || notification.type === "dueDate") {
+      const projectId =
+        notification.targetProject?._id || notification.targetProject;
+      const ticketId =
+        notification.targetTicket?._id || notification.targetTicket;
       if (projectId && ticketId) {
         navigate(`/projects/${projectId}?ticketId=${ticketId}`);
       }
@@ -200,7 +233,7 @@ export default function NavBar({
         </div>
 
         <div className="flex min-w-[220px] items-center justify-end gap-3">
-          <div className="relative">
+          <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => setShowNotifications((prev) => !prev)}
               className="relative inline-flex items-center justify-center rounded-lg bg-[#2c333a] p-2.5 text-slate-200 transition hover:bg-[#38414a]"
@@ -215,7 +248,7 @@ export default function NavBar({
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 z-50 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#22272b] shadow-xl">
+              <div className="absolute right-0 mt-2 z-50 w-80 max-h-[80vh] overflow-hidden rounded-xl border border-white/10 bg-[#22272b] shadow-xl">
                 <div className="border-b border-white/10 px-4 py-3 text-sm font-semibold text-white">
                   Notifications
                 </div>
@@ -225,7 +258,8 @@ export default function NavBar({
                     "Loading..."
                   ) : (
                     <span>
-                      {pendingInvitesCount} pending invite(s), {unreadNotificationsCount} mention(s)
+                      {pendingInvitesCount} pending invite(s),{" "}
+                      {unreadNotificationsCount} notification(s)
                     </span>
                   )}
                 </div>
@@ -271,34 +305,51 @@ export default function NavBar({
                     ))
                   )}
                 </div>
-
                 <div className="border-t border-white/10 px-4 py-3">
                   <div className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Mentions
+                    Notifications
                   </div>
+
                   {notifications.length === 0 ? (
                     <div className="px-2 py-3 text-sm text-slate-400">
-                      No mentions yet
+                      No notifications yet
                     </div>
                   ) : (
-                    notifications.map((notification) => (
-                      <button
-                        key={notification._id}
-                        type="button"
-                        onClick={() => handleNotificationClick(notification)}
-                        className={`w-full text-left py-3 text-sm transition ${notification.read ? 'text-slate-300' : 'text-white hover:bg-white/5'}`}
-                      >
-                        <div className="font-medium">
-                          {notification.sender?.username || 'Someone'} mentioned you
-                        </div>
-                        <div className="text-slate-400">
-                          {notification.message}
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500">
-                          {notification.targetProject?.name || 'Project'} • {notification.targetTicket?.title || 'Ticket'}
-                        </div>
-                      </button>
-                    ))
+                    <div className="max-h-[330px] overflow-y-auto pr-1">
+                      {notifications.map((notification) => (
+                        <button
+                          key={notification._id}
+                          type="button"
+                          onClick={() => handleNotificationClick(notification)}
+                          className={`relative w-full text-left py-3 text-sm transition ${
+                            notification.read
+                              ? "text-slate-300"
+                              : "text-white hover:bg-white/5"
+                          }`}
+                          className={`relative w-full text-left py-3 text-sm transition ${
+                            !notification.read
+                              ? "bg-white/5 text-white hover:bg-white/10"
+                              : "text-slate-300"
+                          }`}
+                        >
+                          {!notification.read && (
+                            <span className="absolute right-2 top-3 h-2 w-2 rounded-full bg-red-500"></span>
+                          )}
+                          <div className="font-medium">
+                            {getNotificationTitle(notification)}
+                          </div>
+
+                          <div className="line-clamp-2 text-slate-400">
+                            {notification.message}
+                          </div>
+
+                          <div className="mt-2 text-xs text-slate-500">
+                            {notification.targetProject?.name || "Project"} •{" "}
+                            {notification.targetTicket?.title || "Ticket"}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>

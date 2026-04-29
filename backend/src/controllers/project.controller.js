@@ -21,12 +21,6 @@ export const createProject = async (req, res) => {
     });
     await newProject.save();
 
-    const projectColumns = [
-      { project: newProject._id, title: 'To Do', order: 0 },
-      { project: newProject._id, title: 'In Progress', order: 1 },
-      { project: newProject._id, title: 'Done', order: 2 },
-    ];
-    await Column.insertMany(projectColumns);
 
     const populatedProject = await Project.findById(newProject._id)
       .populate('owner', 'username email')

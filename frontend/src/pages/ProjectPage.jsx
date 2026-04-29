@@ -154,6 +154,7 @@ export default function ProjectPage() {
 
   const handleCreateColumn = async (e) => {
     e.preventDefault();
+
     if (!columnTitle.trim()) return;
 
     try {
@@ -474,9 +475,7 @@ export default function ProjectPage() {
       );
     });
   }, [project, user]);
-  console.log("USER:", user);
-  console.log("PROJECT MEMBERS:", project?.members);
-  console.log("isAdmin:", isAdmin);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">

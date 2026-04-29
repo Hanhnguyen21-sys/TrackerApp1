@@ -2,6 +2,7 @@
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import app from './app.js';
+import { startDueDateReminderJob } from './jobs/dueDateReminder.js';
 
 dotenv.config();
 
@@ -12,7 +13,7 @@ const startServer = async () => {
   try {
     await mongoose.connect(MONGO_URI);
     console.log("Connected to MongoDB");
-
+    startDueDateReminderJob();
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });

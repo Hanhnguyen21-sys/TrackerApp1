@@ -66,7 +66,8 @@ export const createTicket = async (req, res) => {
     try {
         const { projectId } = req.params;
         const { columnId, title, description, type, priority, assignee, dueDate } = req.body;
-
+        console.log("BACKEND REQ BODY:", req.body);
+        console.log("BACKEND DUE DATE:", req.body.dueDate);
         if (!isNonEmptyString(title) || !isNonEmptyString(columnId)) {
             return sendError(res, 'Title and column are required', 400);
         }
@@ -82,7 +83,7 @@ export const createTicket = async (req, res) => {
             priority: isNonEmptyString(priority) ? priority.trim() : 'Medium',
             reporter: req.user._id,
             assignee: assignee || null,
-            dueDate: dueDate || null,
+            dueDate: dueDate ? new Date(`${dueDate}T12:00:00`) : null,
             order: newOrder,
         });
         await ticket.save();
@@ -165,6 +166,8 @@ export const updateTicket = async (req, res) => {
         const { ticketId } = req.params;
         const { title, description, type, priority, assignee, dueDate } = req.body;
         const ticket = await Ticket.findById(ticketId);
+        console.log("BACKEND REQ BODY:", req.body);
+console.log("BACKEND DUE DATE:", req.body.dueDate);
         if (!ticket) {
             return sendError(res, 'Ticket not found', 404);
         }
@@ -178,7 +181,10 @@ export const updateTicket = async (req, res) => {
         if (type !== undefined) ticket.type = type;
         if (priority !== undefined) ticket.priority = priority;
         if (assignee !== undefined) ticket.assignee = assignee;
-        if (dueDate !== undefined) ticket.dueDate = dueDate;
+        if (dueDate !== undefined) {
+        ticket.dueDate = dueDate ? new Date(`${dueDate}T12:00:00`) : null;
+        ticket.reminderSent = false;
+        }
         await ticket.save();
         await createAuditEntry({
           ticket,
@@ -290,12 +296,12 @@ export const addTicketComment = async (req, res) => {
     if (!ticket) {
       return sendError(res, 'Ticket not found', 404);
     }
-
+    
     const mentionNames = extractMentionUsernames(body);
     const mentionedUsers = mentionNames.length
       ? await User.find({ username: { $in: mentionNames } }).select('username email')
       : [];
-
+      
     const comment = new Comment({
       ticket: ticketId,
       author: req.user._id,
