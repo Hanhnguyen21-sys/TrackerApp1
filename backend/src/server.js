@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import app from './app.js';
 import { startDueDateReminderJob } from './jobs/dueDateReminder.js';
+
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
