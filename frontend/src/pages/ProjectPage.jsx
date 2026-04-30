@@ -25,13 +25,14 @@ import {
   updateTicket,
   getTicketDetails,
   addTicketComment,
+  toggleTicketComplete,
 } from "../api/tickets";
 import Column from "../components/board/Column";
 import MemberManagement from "../components/project/MemberManagement";
 import Navbar from "../components/layout/NavBar";
 import TicketModal from "../components/modal/TicketModal";
 import TicketDetailsModal from "../components/modal/TicketDetailsModal";
-
+import ProgressModal from "../components/modal/ProgressModal";
 export default function ProjectPage() {
   const { projectId } = useParams();
   const { token, user } = useAuth();
@@ -60,6 +61,8 @@ export default function ProjectPage() {
   const [detailActivity, setDetailActivity] = useState([]);
   const [commentText, setCommentText] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+
+  const [showProgressModal, setShowProgressModal] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -102,6 +105,37 @@ export default function ProjectPage() {
     }
   }, [searchParams, token]);
 
+  const projectProgress = useMemo(() => {
+    const totalTasks = tickets.length;
+    const completedTasks = tickets.filter((ticket) => ticket.completed).length;
+    const incompleteTasks = totalTasks - completedTasks;
+
+    const now = new Date();
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    const overdueTasks = tickets.filter((ticket) => {
+      if (!ticket.dueDate || ticket.completed) return false;
+      return new Date(ticket.dueDate) < now;
+    }).length;
+
+    const dueSoonTasks = tickets.filter((ticket) => {
+      if (!ticket.dueDate || ticket.completed) return false;
+      const diffMs = new Date(ticket.dueDate) - now;
+      return diffMs >= 0 && diffMs <= oneDay;
+    }).length;
+
+    const progress =
+      totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+    return {
+      totalTasks,
+      completedTasks,
+      incompleteTasks,
+      overdueTasks,
+      dueSoonTasks,
+      progress,
+    };
+  }, [tickets]);
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
 
@@ -240,6 +274,22 @@ export default function ProjectPage() {
       setTickets((prev) => prev.filter((ticket) => ticket._id !== ticketId));
     } catch (error) {
       setError(error.response?.data?.message || "Failed to delete ticket");
+    }
+  };
+
+  const handleToggleComplete = async (ticketId) => {
+    try {
+      const data = await toggleTicketComplete(ticketId, token);
+      const updatedTicket = data.ticket || data;
+
+      setTickets((prevTickets) =>
+        prevTickets.map((ticket) =>
+          ticket._id === ticketId ? { ...ticket, ...updatedTicket } : ticket,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to toggle ticket complete:", error);
+      setError(error.response?.data?.message || "Failed to update task status");
     }
   };
 
@@ -517,6 +567,34 @@ export default function ProjectPage() {
             <p className="mt-1 text-sm text-white/65">
               {project?.description || "Manage tasks, sprints, and progress."}
             </p>
+            <div className="mt-4 w-full max-w-md">
+              <div className="mb-1 flex items-center justify-between text-sm text-white/75">
+                <span>Project Progress</span>
+                <span>{projectProgress.progress}%</span>
+              </div>
+
+              <div className="h-3 w-full overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full rounded-full bg-green-400 transition-all duration-300"
+                  style={{ width: `${projectProgress.progress}%` }}
+                />
+              </div>
+
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-xs text-white/55">
+                  {projectProgress.completedTasks} of{" "}
+                  {projectProgress.totalTasks} tasks completed
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => setShowProgressModal(true)}
+                  className="rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 transition"
+                >
+                  View Progress
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -563,6 +641,7 @@ export default function ProjectPage() {
                 onDeleteTicket={handleDeleteTicket}
                 onRenameColumn={handleRenameColumn}
                 onDeleteColumn={handleDeleteColumn}
+                onToggleComplete={handleToggleComplete}
               />
             ))}
 
@@ -672,6 +751,13 @@ export default function ProjectPage() {
         onSubmitComment={handleSubmitComment}
         isCommentSubmitting={commentSubmitting}
         members={project?.members || []}
+      />
+      <ProgressModal
+        isOpen={showProgressModal}
+        onClose={() => setShowProgressModal(false)}
+        progress={projectProgress}
+        tickets={tickets}
+        columns={columns}
       />
 
       {showMemberPanel && (

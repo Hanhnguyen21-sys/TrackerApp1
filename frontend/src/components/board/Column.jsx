@@ -16,6 +16,7 @@ export default function Column({
   onViewTicket,
   onRenameColumn,
   onDeleteColumn,
+  onToggleComplete,
 }) {
   const [isEditingColumn, setIsEditingColumn] = useState(false);
   const [columnTitle, setColumnTitle] = useState(column.title);
@@ -135,6 +136,7 @@ export default function Column({
                     onDeleteTicket={onDeleteTicket}
                     onEditTicket={handleOpenEditTicket}
                     onViewTicket={onViewTicket}
+                    onToggleComplete={onToggleComplete}
                   />
                 ))}
             </div>

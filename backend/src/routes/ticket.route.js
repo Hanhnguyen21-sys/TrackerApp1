@@ -2,7 +2,7 @@ import express from 'express';
 import protect from '../middleware/auth.middleware.js';
 import {requireProjectMember, requireTicketProjectMember} from '../middleware/project.middleware.js';
 import {requireColumnProjectMember} from '../middleware/column.middleware.js';
-import {createTicket, getTicketsByProject, updateTicket, deleteTicket, moveTicket, getTicketsByColumn, searchTickets, getTicketDetails, addTicketComment} from '../controllers/ticket.controller.js';
+import {toggleTicketComplete, getProjectProgress, createTicket, getTicketsByProject, updateTicket, deleteTicket, moveTicket, getTicketsByColumn, searchTickets, getTicketDetails, addTicketComment} from '../controllers/ticket.controller.js';
 
 const router = express.Router();
 
@@ -40,4 +40,12 @@ router.post('/tickets/:ticketId/comments', protect, requireTicketProjectMember, 
 // GET /api/projects/:projectId/tickets/search
 router.get('/projects/:projectId/tickets/search', protect, requireProjectMember, searchTickets);
 
+router.put(
+  "/tickets/:ticketId/toggle-complete",
+  protect,
+  requireTicketProjectMember,
+  toggleTicketComplete
+);
+
+router.get("/project/:projectId/progress", protect, getProjectProgress);
 export default router;
