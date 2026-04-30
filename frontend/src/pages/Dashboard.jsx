@@ -11,6 +11,7 @@ import { generateProjectAI } from "../api/ai";
 import { createColumn } from "../api/columns";
 import { createTicket } from "../api/tickets";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import ProfilePage from "./ProfilePage";
 import {
   Pencil,
   X,
@@ -305,160 +306,175 @@ export default function Dashboard() {
         setActiveView={setActiveView}
         setShowCreateModal={setShowCreateModal}
       >
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white">
-            {activeView === "home" && "Recent Projects"}
-            {activeView === "myspace" && "My Space"}
-            {activeView === "shared" && "Shared With Me"}
-          </h2>
-
-          <p className="mt-2 text-slate-400">
-            {activeView === "home" && "All projects"}
-            {activeView === "myspace" && "Projects you created."}
-            {activeView === "shared" && "Projects assigned by other users."}
-          </p>
-        </div>
-
-        {error && (
-          <div className="mb-6 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-            {error}
-          </div>
-        )}
-
-        {loadingProjects ? (
-          <p className="text-slate-400">Loading projects...</p>
-        ) : filteredProjects.length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-[#22272b] p-8 text-center">
-            <h3 className="text-lg font-semibold text-white">
-              {searchTerm ? "No matching projects found" : "No projects yet"}
-            </h3>
-            <p className="mt-2 text-slate-400">
-              {searchTerm
-                ? "Try another project name."
-                : "Create your first project to start building your board."}
-            </p>
-          </div>
+        {activeView === "profile" ? (
+          <ProfilePage />
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredProjects.map((project) => {
-              const isOwner =
-                project.owner?._id === user?._id || project.owner === user?._id;
+          <>
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-white">
+                {activeView === "home" && "Recent Projects"}
+                {activeView === "myspace" && "My Space"}
+                {activeView === "shared" && "Shared With Me"}
+              </h2>
 
-              const isEditing = editingProjectId === project._id;
+              <p className="mt-2 text-slate-400">
+                {activeView === "home" && "All projects"}
+                {activeView === "myspace" && "Projects you created."}
+                {activeView === "shared" && "Projects assigned by other users."}
+              </p>
+            </div>
 
-              return (
-                <div
-                  key={project._id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    if (!isEditing) navigate(`/projects/${project._id}`);
-                  }}
-                  onKeyDown={(e) => {
-                    if ((e.key === "Enter" || e.key === " ") && !isEditing) {
-                      navigate(`/projects/${project._id}`);
-                    }
-                  }}
-                  className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-[#22272b] shadow-sm transition hover:-translate-y-1 hover:border-sky-500/40 hover:shadow-xl"
-                >
-                  <div className="h-24 bg-gradient-to-r from-sky-900 to-sky-500" />
+            {error && (
+              <div className="mb-6 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {error}
+              </div>
+            )}
 
-                  <div className="p-5">
-                    {isEditing ? (
-                      <form
-                        onSubmit={(e) => handleSaveEditProject(e, project._id)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="space-y-3"
-                      >
-                        <input
-                          name="name"
-                          type="text"
-                          value={editFormData.name}
-                          onChange={handleEditChange}
-                          className="w-full rounded-xl border border-white/10 bg-[#2c333a] px-4 py-3 text-white outline-none focus:border-sky-500"
-                        />
+            {loadingProjects ? (
+              <p className="text-slate-400">Loading projects...</p>
+            ) : filteredProjects.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-[#22272b] p-8 text-center">
+                <h3 className="text-lg font-semibold text-white">
+                  {searchTerm
+                    ? "No matching projects found"
+                    : "No projects yet"}
+                </h3>
+                <p className="mt-2 text-slate-400">
+                  {searchTerm
+                    ? "Try another project name."
+                    : "Create your first project to start building your board."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {filteredProjects.map((project) => {
+                  const isOwner =
+                    project.owner?._id === user?._id ||
+                    project.owner === user?._id;
 
-                        <textarea
-                          name="description"
-                          value={editFormData.description}
-                          onChange={handleEditChange}
-                          rows={4}
-                          className="w-full rounded-xl border border-white/10 bg-[#2c333a] px-4 py-3 text-white outline-none focus:border-sky-500"
-                        />
+                  const isEditing = editingProjectId === project._id;
 
-                        <div className="flex gap-2">
-                          <button
-                            type="submit"
-                            disabled={savingEdit}
-                            className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
+                  return (
+                    <div
+                      key={project._id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        if (!isEditing) navigate(`/projects/${project._id}`);
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          (e.key === "Enter" || e.key === " ") &&
+                          !isEditing
+                        ) {
+                          navigate(`/projects/${project._id}`);
+                        }
+                      }}
+                      className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-[#22272b] shadow-sm transition hover:-translate-y-1 hover:border-sky-500/40 hover:shadow-xl"
+                    >
+                      <div className="h-24 bg-gradient-to-r from-sky-900 to-sky-500" />
+
+                      <div className="p-5">
+                        {isEditing ? (
+                          <form
+                            onSubmit={(e) =>
+                              handleSaveEditProject(e, project._id)
+                            }
+                            onClick={(e) => e.stopPropagation()}
+                            className="space-y-3"
                           >
-                            {savingEdit ? "Saving..." : "Save"}
-                          </button>
+                            <input
+                              name="name"
+                              type="text"
+                              value={editFormData.name}
+                              onChange={handleEditChange}
+                              className="w-full rounded-xl border border-white/10 bg-[#2c333a] px-4 py-3 text-white outline-none focus:border-sky-500"
+                            />
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingProjectId(null);
-                              setEditFormData({
-                                name: "",
-                                description: "",
-                              });
-                            }}
-                            className="rounded-xl bg-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/15"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <>
-                        <div className="flex items-start justify-between gap-3">
-                          <h3 className="text-xl font-semibold text-white">
-                            {project.name}
-                          </h3>
+                            <textarea
+                              name="description"
+                              value={editFormData.description}
+                              onChange={handleEditChange}
+                              rows={4}
+                              className="w-full rounded-xl border border-white/10 bg-[#2c333a] px-4 py-3 text-white outline-none focus:border-sky-500"
+                            />
 
-                          {isOwner && (
-                            <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                            <div className="flex gap-2">
                               <button
-                                type="button"
-                                onClick={(e) =>
-                                  handleStartEditProject(e, project)
-                                }
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-sky-400"
-                                title="Edit project"
+                                type="submit"
+                                disabled={savingEdit}
+                                className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600"
                               >
-                                <Pencil size={16} />
+                                {savingEdit ? "Saving..." : "Save"}
                               </button>
 
                               <button
                                 type="button"
-                                onClick={(e) =>
-                                  handleDeleteProject(
-                                    e,
-                                    project._id,
-                                    project.name,
-                                  )
-                                }
-                                className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
-                                title="Delete project"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingProjectId(null);
+                                  setEditFormData({
+                                    name: "",
+                                    description: "",
+                                  });
+                                }}
+                                className="rounded-xl bg-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/15"
                               >
-                                <X size={16} />
+                                Cancel
                               </button>
                             </div>
-                          )}
-                        </div>
+                          </form>
+                        ) : (
+                          <>
+                            <div className="flex items-start justify-between gap-3">
+                              <h3 className="text-xl font-semibold text-white">
+                                {project.name}
+                              </h3>
 
-                        <p className="mt-3 line-clamp-3 text-sm text-slate-400">
-                          {project.description || "No description provided."}
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                              {isOwner && (
+                                <div className="flex items-center gap-1 opacity-0 transition group-hover:opacity-100">
+                                  <button
+                                    type="button"
+                                    onClick={(e) =>
+                                      handleStartEditProject(e, project)
+                                    }
+                                    className="rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-sky-400"
+                                    title="Edit project"
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) =>
+                                      handleDeleteProject(
+                                        e,
+                                        project._id,
+                                        project.name,
+                                      )
+                                    }
+                                    className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                                    title="Delete project"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            <p className="mt-3 line-clamp-3 text-sm text-slate-400">
+                              {project.description ||
+                                "No description provided."}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
         )}
       </DashboardLayout>
       {showCreateModal && (
