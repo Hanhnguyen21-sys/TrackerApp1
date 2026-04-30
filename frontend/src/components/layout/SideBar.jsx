@@ -1,4 +1,4 @@
-import { Home, LayoutGrid, FolderKanban, User } from "lucide-react";
+import { Home, LayoutGrid, FolderKanban, User, Layers } from "lucide-react";
 
 export default function SideBar({ activeView, setActiveView, user }) {
   const username = user?.username || "User";
@@ -55,6 +55,14 @@ export default function SideBar({ activeView, setActiveView, user }) {
         >
           <FolderKanban size={18} />
           <span className="font-medium">Shared With Me</span>
+        </button>
+
+        <button
+          onClick={() => setActiveView("templates")}
+          className={navButtonClass("templates")}
+        >
+          <Layers size={18} />
+          <span className="font-medium">Templates</span>
         </button>
       </nav>
     </aside>

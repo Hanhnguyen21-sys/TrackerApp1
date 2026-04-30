@@ -12,6 +12,7 @@ import { createColumn } from "../api/columns";
 import { createTicket } from "../api/tickets";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ProfilePage from "./ProfilePage";
+import Templates from "./Templates";
 import {
   Pencil,
   X,
@@ -218,7 +219,65 @@ export default function Dashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+  const handleUseTemplate = async (template) => {
+    try {
+      setCreating(true);
+      setError("");
 
+      // 1. Create project from template
+      const projectData = await createProject(
+        {
+          name: template.name,
+          description: template.description,
+        },
+        token,
+      );
+
+      const createdProject = projectData.project || projectData;
+
+      // 2. Create columns and tasks
+      for (const column of template.columns) {
+        const columnData = await createColumn(
+          createdProject._id,
+          {
+            title: column.title,
+          },
+          token,
+        );
+
+        const createdColumn = columnData.column || columnData;
+
+        for (const taskTitle of column.tasks || []) {
+          await createTicket(
+            createdProject._id,
+            {
+              columnId: createdColumn._id,
+              title: taskTitle,
+              description: "",
+              type: "Task",
+              priority: "Medium",
+              assignee: null,
+              dueDate: null,
+            },
+            token,
+          );
+        }
+      }
+
+      // 3. Update dashboard and open project
+      setProjects((prev) => [createdProject, ...prev]);
+      navigate(`/projects/${createdProject._id}`);
+    } catch (error) {
+      console.error("Failed to create project from template:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to create project from template",
+      );
+    } finally {
+      setCreating(false);
+    }
+  };
   //AI integration
   const handleGenerateWithAI = async () => {
     try {
@@ -308,6 +367,8 @@ export default function Dashboard() {
       >
         {activeView === "profile" ? (
           <ProfilePage />
+        ) : activeView === "templates" ? (
+          <Templates onUseTemplate={handleUseTemplate} creating={creating} />
         ) : (
           <>
             <div className="mb-8">
