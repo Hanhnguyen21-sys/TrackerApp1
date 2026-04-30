@@ -25,6 +25,7 @@ import {
   updateTicket,
   getTicketDetails,
   addTicketComment,
+  toggleTicketComplete,
 } from "../api/tickets";
 import Column from "../components/board/Column";
 import MemberManagement from "../components/project/MemberManagement";
@@ -102,6 +103,19 @@ export default function ProjectPage() {
     }
   }, [searchParams, token]);
 
+  const projectProgress = useMemo(() => {
+    const totalTasks = tickets.length;
+    const completedTasks = tickets.filter((ticket) => ticket.completed).length;
+
+    const progress =
+      totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+
+    return {
+      totalTasks,
+      completedTasks,
+      progress,
+    };
+  }, [tickets]);
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
 
@@ -240,6 +254,22 @@ export default function ProjectPage() {
       setTickets((prev) => prev.filter((ticket) => ticket._id !== ticketId));
     } catch (error) {
       setError(error.response?.data?.message || "Failed to delete ticket");
+    }
+  };
+
+  const handleToggleComplete = async (ticketId) => {
+    try {
+      const data = await toggleTicketComplete(ticketId, token);
+      const updatedTicket = data.ticket || data;
+
+      setTickets((prevTickets) =>
+        prevTickets.map((ticket) =>
+          ticket._id === ticketId ? { ...ticket, ...updatedTicket } : ticket,
+        ),
+      );
+    } catch (error) {
+      console.error("Failed to toggle ticket complete:", error);
+      setError(error.response?.data?.message || "Failed to update task status");
     }
   };
 
@@ -517,6 +547,25 @@ export default function ProjectPage() {
             <p className="mt-1 text-sm text-white/65">
               {project?.description || "Manage tasks, sprints, and progress."}
             </p>
+            {/* Project Progress  */}
+            <div className="mt-4 w-full max-w-md">
+              <div className="mb-1 flex items-center justify-between text-sm text-white/75">
+                <span>Project Progress</span>
+                <span>{projectProgress.progress}%</span>
+              </div>
+
+              <div className="h-3 w-full overflow-hidden rounded-full bg-white/20">
+                <div
+                  className="h-full rounded-full bg-green-400 transition-all duration-300"
+                  style={{ width: `${projectProgress.progress}%` }}
+                />
+              </div>
+
+              <p className="mt-1 text-xs text-white/55">
+                {projectProgress.completedTasks} of {projectProgress.totalTasks}{" "}
+                tasks completed
+              </p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -563,6 +612,7 @@ export default function ProjectPage() {
                 onDeleteTicket={handleDeleteTicket}
                 onRenameColumn={handleRenameColumn}
                 onDeleteColumn={handleDeleteColumn}
+                onToggleComplete={handleToggleComplete}
               />
             ))}
 

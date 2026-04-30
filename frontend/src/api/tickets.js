@@ -75,3 +75,17 @@ export const addTicketComment = async (ticketId, body, token) => {
     );
     return response.data;
 };
+
+export const toggleTicketComplete = async (ticketId, token) => {
+  const res = await api.put(
+    `/tickets/${ticketId}/toggle-complete`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return res.data;
+};

@@ -53,6 +53,10 @@ const ticketSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
+    completed: {
+        type: Boolean,
+        default: false,
+    }
 }, { timestamps: true });
 
 export default mongoose.model('Ticket', ticketSchema);

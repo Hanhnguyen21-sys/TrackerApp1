@@ -7,6 +7,7 @@ export default function TicketCard({
   onDeleteTicket,
   onEditTicket,
   onViewTicket,
+  onToggleComplete,
 }) {
   const {
     attributes,
@@ -56,12 +57,33 @@ export default function TicketCard({
       } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div
-          className="flex-1 cursor-grab active:cursor-grabbing"
-          {...attributes}
-          {...listeners}
-        >
-          <h3 className="font-medium text-slate-900 pr-2">{ticket.title}</h3>
+        <div className="flex items-start gap-2 flex-1">
+          <input
+            type="checkbox"
+            checked={ticket.completed || false}
+            onChange={(e) => {
+              e.stopPropagation();
+              onToggleComplete?.(ticket._id);
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="mt-1 h-4 w-4 rounded border-slate-300 accent-green-600"
+          />
+
+          <div
+            className="flex-1 cursor-grab active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <h3
+              className={`font-medium pr-2 ${
+                ticket.completed
+                  ? "text-slate-400 line-through"
+                  : "text-slate-900"
+              }`}
+            >
+              {ticket.title}
+            </h3>
+          </div>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
