@@ -11,6 +11,7 @@ import ticketRoutes from "./routes/ticket.route.js";
 import invitationRoutes from "./routes/invitation.route.js";
 import notificationRoutes from "./routes/notification.route.js";
 import aiRoutes from "./routes/ai.route.js";
+import activityRoutes from "./routes/activity.route.js";
 const app = express();
 
 
@@ -31,4 +32,5 @@ app.use("/api", ticketRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api", activityRoutes);
 export default app;

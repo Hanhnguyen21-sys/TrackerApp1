@@ -5,7 +5,7 @@ const auditLogSchema = new mongoose.Schema(
     ticket: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Ticket',
-      required: true,
+      default: null // for some activities that not ticket-related, such as add or remove columns
     },
     project: {
       type: mongoose.Schema.Types.ObjectId,
