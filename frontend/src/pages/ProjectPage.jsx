@@ -698,11 +698,11 @@ export default function ProjectPage() {
               <button
                 type="button"
                 onClick={openProjectActivity}
-                disabled={activityLoading}
+                disabled={loadingActivity}
                 className="inline-flex items-center gap-2 rounded-xl border bg-white/10 text-white border border-white/20 hover:bg-white/20 px-3 py-2 text-sm font-medium text-sky-200 hover:bg-sky-500/20 transition disabled:opacity-60"
               >
                 <Activity size={16} />
-                {activityLoading ? "Loading..." : "Activity"}
+                {loadingActivity ? "Loading..." : "Activity"}
               </button>
 
               {/* Add Member */}
