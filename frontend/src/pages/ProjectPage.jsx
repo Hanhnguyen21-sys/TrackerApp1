@@ -67,10 +67,9 @@ export default function ProjectPage() {
 
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [showActivityModal, setShowActivityModal] = useState(false);
-  const [projectActivity, setProjectActivity] = useState([]);
-  const [activityLoading, setActivityLoading] = useState(false);
-
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [showCharts, setShowCharts] = useState(false);
+  const [loadingActivity, setLoadingActivity] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -78,9 +77,11 @@ export default function ProjectPage() {
     }),
   );
 
-  const fetchBoardData = async () => {
+  const fetchBoardData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       setError("");
 
       const [projectData, columnsData, ticketsData] = await Promise.all([
@@ -89,20 +90,38 @@ export default function ProjectPage() {
         getTicketsByProject(projectId, token),
       ]);
 
-      setProject(projectData.project || projectData);
-      setColumns(columnsData.columns || columnsData);
-      setTickets(ticketsData.tickets || ticketsData);
+      const fetchedProject = projectData.project || projectData;
+      const fetchedColumns = columnsData.columns || columnsData;
+      const fetchedTickets = ticketsData.tickets || ticketsData;
+
+      // Automatically sort columns/sprints by startDate
+      const sortedColumns = [...fetchedColumns].sort((a, b) => {
+        if (!a.startDate) return 1;
+        if (!b.startDate) return -1;
+        return new Date(a.startDate) - new Date(b.startDate);
+      });
+
+      setProject(fetchedProject);
+      setColumns(sortedColumns);
+      setTickets(fetchedTickets);
     } catch (error) {
       console.error("Failed to fetch board data:", error);
-      setError(error.response?.data?.message || "Failed to load project board");
+      if (!isBackground || !project) {
+        setError(error.response?.data?.message || "Failed to load project board");
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     if (projectId && token) {
       fetchBoardData();
+
+      const intervalId = setInterval(() => fetchBoardData(true), 30000);
+      return () => clearInterval(intervalId);
     }
   }, [projectId, token]);
 
