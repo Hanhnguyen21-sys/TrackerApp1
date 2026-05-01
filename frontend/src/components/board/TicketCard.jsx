@@ -48,13 +48,12 @@ export default function TicketCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-xl border p-4 shadow-sm transition ${
-        dueStatus === "overdue"
+      className={`rounded-xl border p-4 shadow-sm transition ${dueStatus === "overdue"
           ? "border-red-400 bg-red-50"
           : dueStatus === "soon"
             ? "border-yellow-400 bg-yellow-50"
             : "border-slate-200 bg-white"
-      } ${isDragging ? "opacity-50" : ""}`}
+        } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div
@@ -113,10 +112,19 @@ export default function TicketCard({
             {ticket.effortPoints}
           </span>
         )}
-        {ticket.dueDateUpdateCount > 2 && (
-          <div className="flex items-center gap-1 text-red-500 animate-pulse" title={`Date pushed ${ticket.dueDateUpdateCount} times`}>
-            <AlertCircle size={14} />
-            <span className="text-[10px] font-black uppercase">Spill</span>
+        {ticket.dueDateUpdateCount > 3 && (
+          <div className="group relative">
+            <div 
+              className="flex items-center gap-1 text-red-500 animate-pulse cursor-help" 
+            >
+              <AlertCircle size={14} />
+              <span className="text-[10px] font-black uppercase">Spill</span>
+            </div>
+            {/* Custom Tooltip */}
+            <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-48 -translate-x-1/2 scale-90 rounded-lg bg-slate-900 px-3 py-2 text-center text-[11px] font-medium text-white opacity-0 shadow-xl transition-all duration-200 group-hover:scale-100 group-hover:opacity-100 z-50">
+              This ticket's due date has been pushed {ticket.dueDateUpdateCount} times.
+              <div className="absolute top-full left-1/2 -mt-1 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900" />
+            </div>
           </div>
         )}
       </div>
@@ -128,13 +136,12 @@ export default function TicketCard({
       )}
       {ticket.dueDate && (
         <div
-          className={`mt-3 inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-            dueStatus === "overdue"
+          className={`mt-3 inline-flex rounded-full px-2 py-1 text-xs font-medium ${dueStatus === "overdue"
               ? "bg-red-100 text-red-700"
               : dueStatus === "soon"
                 ? "bg-yellow-100 text-yellow-700"
                 : "bg-slate-100 text-slate-600"
-          }`}
+            }`}
         >
           {dueStatus === "overdue"
             ? "Overdue"

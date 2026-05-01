@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { X, MessageCircle, Activity } from "lucide-react";
+import { X, MessageCircle, Activity, AlertCircle } from "lucide-react";
 
 export default function TicketDetailsModal({
   isOpen,
@@ -102,9 +102,25 @@ export default function TicketDetailsModal({
                     {ticket?.project?.name || "Project unknown"}
                   </p>
                 </div>
-                <span className="rounded-full bg-sky-500/15 px-3 py-1 text-sm text-sky-200">
-                  {ticket?.type || "Task"} • {ticket?.priority || "Medium"}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-full bg-sky-500/15 px-3 py-1 text-sm text-sky-200">
+                    {ticket?.type || "Task"} • {ticket?.priority || "Medium"}
+                  </span>
+                  
+                  {ticket?.dueDateUpdateCount > 3 && (
+                    <div className="group relative">
+                      <div className="flex items-center gap-1.5 rounded-full bg-red-500/15 px-3 py-1 text-xs font-black uppercase text-red-400 animate-pulse cursor-help">
+                        <AlertCircle size={14} />
+                        <span>Spill</span>
+                      </div>
+                      {/* Custom Tooltip */}
+                      <div className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-48 -translate-x-1/2 scale-95 rounded-xl bg-slate-900 px-3 py-2 text-center text-[11px] font-medium text-white opacity-0 shadow-2xl transition-all duration-200 group-hover:scale-100 group-hover:opacity-100 z-50 ring-1 ring-white/10">
+                        This ticket's due date has been pushed {ticket.dueDateUpdateCount} times.
+                        <div className="absolute top-full left-1/2 -mt-1 h-2 w-2 -translate-x-1/2 rotate-45 bg-slate-900" />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

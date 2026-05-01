@@ -324,8 +324,8 @@ export default function Dashboard() {
       console.error("Failed to create project from template:", error);
       setError(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to create project from template",
+        error.message ||
+        "Failed to create project from template",
       );
     } finally {
       setCreating(false);
@@ -394,8 +394,8 @@ export default function Dashboard() {
       console.error("❌ AI project creation failed:", error);
       setError(
         error.response?.data?.message ||
-          error.message ||
-          "Failed to generate AI project",
+        error.message ||
+        "Failed to generate AI project",
       );
     } finally {
       setCreating(false);
@@ -500,11 +500,6 @@ export default function Dashboard() {
                         ) : (
                           <div className="absolute inset-0 bg-black/20" />
                         )}
-                        {project.tagline && (
-                          <div className="absolute bottom-2 left-4 rounded bg-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
-                            {project.tagline}
-                          </div>
-                        )}
                       </div>
                       <div className="p-5">
                         {isEditing ? (
@@ -547,11 +542,10 @@ export default function Dashboard() {
                                         tagline: thumb.witty,
                                       }))
                                     }
-                                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${
-                                      editFormData.thumbnail === thumb.url
+                                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${editFormData.thumbnail === thumb.url
                                         ? "border-sky-500 ring-2 ring-sky-500/20"
                                         : "border-transparent hover:border-white/20"
-                                    }`}
+                                      }`}
                                     title={thumb.witty}
                                   >
                                     <img
@@ -708,11 +702,10 @@ export default function Dashboard() {
                           tagline: thumb.witty,
                         }))
                       }
-                      className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${
-                        formData.thumbnail === thumb.url
+                      className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${formData.thumbnail === thumb.url
                           ? "border-sky-500 ring-2 ring-sky-500/20"
                           : "border-transparent hover:border-white/20"
-                      }`}
+                        }`}
                       title={thumb.witty}
                     >
                       <img
