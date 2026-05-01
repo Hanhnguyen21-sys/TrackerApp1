@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { X } from "lucide-react";
 import {
   PieChart,
@@ -25,27 +26,25 @@ export default function ProgressModal({
     { name: "Incomplete", value: progress.incompleteTasks },
   ];
 
-  const columnData = columns.map((column) => {
-    const columnTickets = tickets.filter((ticket) => {
-      const columnId =
-        typeof ticket.column === "string" ? ticket.column : ticket.column?._id;
-
-      return columnId === column._id;
-    });
-
-    return {
-      name: column.title,
-      total: columnTickets.length,
-      completed: columnTickets.filter((ticket) => ticket.completed).length,
-    };
-  });
+  const statusData = useMemo(() => {
+    const statuses = {};
+    for (const ticket of tickets) {
+      const s = ticket.status || "Grooming";
+      if (!statuses[s]) {
+        statuses[s] = { name: s, total: 0, effort: 0 };
+      }
+      statuses[s].total += 1;
+      statuses[s].effort += (Number(ticket.effortPoints) || 0);
+    }
+    return Object.values(statuses);
+  }, [tickets]);
 
   const summaryCards = [
     { label: "Total Tasks", value: progress.totalTasks },
     { label: "Completed", value: progress.completedTasks },
-    { label: "Incomplete", value: progress.incompleteTasks },
-    { label: "Overdue", value: progress.overdueTasks },
-    { label: "Due Soon", value: progress.dueSoonTasks },
+    { label: "Total Effort", value: `${progress.totalEffort} pts` },
+    { label: "Effort Done", value: `${progress.completedEffort} pts` },
+    { label: "Velocity", value: `${progress.effortProgress}%` },
   ];
 
   return (
@@ -57,7 +56,7 @@ export default function ProgressModal({
               Project Progress
             </h2>
             <p className="mt-1 text-sm text-white/50">
-              {progress.progress}% completed
+              {progress.progress}% tasks done • {progress.effortProgress}% effort completed
             </p>
           </div>
 
@@ -114,22 +113,24 @@ export default function ProgressModal({
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <h3 className="mb-3 text-sm font-semibold text-white">
-              Tasks by Column
+              Tasks by Status
             </h3>
-
             <div className="h-64">
-              {progress.totalTasks === 0 ? (
+              {statusData.length === 0 ? (
                 <div className="flex h-full items-center justify-center text-sm text-white/50">
                   No tasks yet
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={columnData}>
+                  <BarChart data={statusData}>
                     <XAxis dataKey="name" stroke="#cbd5e1" />
                     <YAxis stroke="#cbd5e1" allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="total" fill="#60a5fa" name="Total" />
-                    <Bar dataKey="completed" fill="#4ade80" name="Completed" />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px' }}
+                      itemStyle={{ color: '#f1f5f9' }}
+                    />
+                    <Bar dataKey="total" fill="#60a5fa" name="Task Count" />
+                    <Bar dataKey="effort" fill="#818cf8" name="Effort Pts" />
                   </BarChart>
                 </ResponsiveContainer>
               )}

@@ -65,7 +65,7 @@ const buildTicketResponse = async (ticket) => {
 export const createTicket = async (req, res) => {
     try {
         const { projectId } = req.params;
-        const { columnId, title, description, type, priority, assignee, dueDate, effortPoints } = req.body;
+        const { columnId, title, description, type, priority, assignee, dueDate, effortPoints, status } = req.body;
         console.log("BACKEND REQ BODY:", req.body);
         console.log("BACKEND DUE DATE:", req.body.dueDate);
         if (!isNonEmptyString(title) || !isNonEmptyString(columnId)) {
@@ -85,6 +85,7 @@ export const createTicket = async (req, res) => {
             assignee: assignee || null,
             dueDate: dueDate ? new Date(`${dueDate}T12:00:00`) : null,
             effortPoints: Number(effortPoints) || 0,
+            status: status || 'Grooming',
             order: newOrder,
         });
         await ticket.save();
@@ -165,7 +166,7 @@ export const searchTickets = async (req, res) => {
 export const updateTicket = async (req, res) => {
     try {
         const { ticketId } = req.params;
-        const { title, description, type, priority, assignee, dueDate, effortPoints } = req.body;
+        const { title, description, type, priority, assignee, dueDate, effortPoints, status } = req.body;
         const ticket = await Ticket.findById(ticketId);
         console.log("BACKEND REQ BODY:", req.body);
 console.log("BACKEND DUE DATE:", req.body.dueDate);
@@ -183,6 +184,11 @@ console.log("BACKEND DUE DATE:", req.body.dueDate);
         if (priority !== undefined) ticket.priority = priority;
         if (assignee !== undefined) ticket.assignee = assignee === "" ? null : assignee;
         if (effortPoints !== undefined) ticket.effortPoints = Number(effortPoints) || 0;
+        if (status !== undefined) {
+            ticket.status = status;
+            // Sync completed status with workflow status
+            ticket.completed = (status === 'Done');
+        }
         if (dueDate !== undefined) {
             const newDate = dueDate ? new Date(`${dueDate}T12:00:00`).toISOString() : null;
             const currentDate = ticket.dueDate ? new Date(ticket.dueDate).toISOString() : null;

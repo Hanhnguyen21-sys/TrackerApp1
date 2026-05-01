@@ -104,7 +104,7 @@ export default function TicketDetailsModal({
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="rounded-full bg-sky-500/15 px-3 py-1 text-sm text-sky-200">
-                    {ticket?.type || "Task"} • {ticket?.priority || "Medium"}
+                    {ticket?.type || "Task"} • {ticket?.priority || "Medium"} • {ticket?.status || "Grooming"}
                   </span>
                   
                   {ticket?.dueDateUpdateCount > 3 && (

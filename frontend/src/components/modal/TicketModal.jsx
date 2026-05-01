@@ -7,6 +7,7 @@ const defaultForm = {
   priority: "Medium",
   assignee: "",
   dueDate: "",
+  status: "Grooming",
 };
 
 export default function TicketModal({
@@ -31,6 +32,7 @@ export default function TicketModal({
             ? initialData.assignee
             : initialData.assignee?._id || "",
         dueDate: initialData.dueDate ? initialData.dueDate.slice(0, 10) : "",
+        status: initialData.status || "Grooming",
       });
     } else {
       setFormData(defaultForm);
@@ -166,6 +168,25 @@ export default function TicketModal({
               onChange={handleChange}
               className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Status
+            </label>
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900"
+            >
+              <option value="Grooming">Grooming</option>
+              <option value="To-Do">To-Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Testing">Testing</option>
+              <option value="Done">Done</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

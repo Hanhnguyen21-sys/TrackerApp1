@@ -106,7 +106,7 @@ export default function TicketCard({
         <span className="rounded-full bg-sky-100 text-sky-700 text-xs font-medium px-2 py-1">
           {ticket.priority || "Medium"}
         </span>
-        <span className="text-xs text-slate-400">{ticket.type || "Task"}</span>
+        <span className="text-xs text-slate-400">{ticket.type || "Task"} • {ticket.status || "Grooming"}</span>
         {ticket.effortPoints > 0 && (
           <span className="flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 border border-slate-200" title="Effort Points">
             {ticket.effortPoints}

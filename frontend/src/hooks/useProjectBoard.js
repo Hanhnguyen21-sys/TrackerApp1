@@ -119,25 +119,39 @@ export function useProjectBoard(projectId, token, user) {
 
   const projectProgress = useMemo(() => {
     const totalTasks = visibleTickets.length;
-    const completedTasks = visibleTickets.filter((ticket) => ticket.completed).length;
+    const completedTasks = visibleTickets.filter((ticket) => ticket.completed || ticket.status === "Done").length;
     const incompleteTasks = totalTasks - completedTasks;
     const now = new Date();
     const oneDay = 24 * 60 * 60 * 1000;
 
     const overdueTasks = visibleTickets.filter((ticket) => {
-      if (!ticket.dueDate || ticket.completed) return false;
+      if (!ticket.dueDate || ticket.completed || ticket.status === "Done") return false;
       return new Date(ticket.dueDate) < now;
     }).length;
 
     const dueSoonTasks = visibleTickets.filter((ticket) => {
-      if (!ticket.dueDate || ticket.completed) return false;
+      if (!ticket.dueDate || ticket.completed || ticket.status === "Done") return false;
       const diffMs = new Date(ticket.dueDate) - now;
       return diffMs >= 0 && diffMs <= oneDay;
     }).length;
 
     const progress = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
 
-    return { totalTasks, completedTasks, incompleteTasks, overdueTasks, dueSoonTasks, progress };
+    const totalEffort = visibleTickets.reduce((sum, t) => sum + (Number(t.effortPoints) || 0), 0);
+    const completedEffort = visibleTickets.filter(t => t.completed || t.status === "Done").reduce((sum, t) => sum + (Number(t.effortPoints) || 0), 0);
+    const effortProgress = totalEffort === 0 ? 0 : Math.round((completedEffort / totalEffort) * 100);
+
+    return { 
+      totalTasks, 
+      completedTasks, 
+      incompleteTasks, 
+      overdueTasks, 
+      dueSoonTasks, 
+      progress,
+      totalEffort,
+      completedEffort,
+      effortProgress
+    };
   }, [visibleTickets]);
 
   const ticketsByColumn = useMemo(() => {

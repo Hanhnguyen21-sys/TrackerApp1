@@ -66,6 +66,11 @@ const ticketSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    status: {
+        type: String,
+        default: 'Grooming',
+        trim: true,
+    },
 }, { timestamps: true });
 
 export default mongoose.model('Ticket', ticketSchema);

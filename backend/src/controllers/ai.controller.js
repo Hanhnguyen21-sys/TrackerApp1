@@ -1,62 +1,66 @@
-import OpenAI from "openai";
+import { OpenRouter } from "@openrouter/sdk";
 import { sendError, sendSuccess } from "../utils/apiResponse.js";
 
 export const generateProjectBoard = async (req, res) => {
   try {
-    
-
-    const { name } = req.body;
+    const { name, description } = req.body;
 
     if (!name || !name.trim()) {
       return sendError(res, "Project name is required", 400);
     }
 
-    
-
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     const prompt = `
-Generate a project board for: "${name}".
+                    Generate a project board for: "${name}".
+                    Project Description: "${description || "No description provided."}"
 
-Return ONLY valid JSON. No markdown. No explanation.
+                    Return ONLY valid JSON format. No markdown. No explanation.
 
-Format:
-{
-  "columns": [
-    {
-      "title": "Column name",
-      "tasks": [
-        {
-          "title": "Task title",
-          "description": "Short description",
-          "priority": "Low"
-        }
-      ]
-    }
-  ]
-}
+                    Format: {
+                      "refinedName": "A more professional or catchy name for the project",
+                      "refinedDescription": "A professional and detailed description based on the user's intent",
+                      "columns": [
+                        {
+                          "title": "Phase name (e.g., Phase 1: Planning)",
+                          "tasks": [
+                            {
+                              "title": "Task title",
+                              "description": "Short description",
+                              "priority": "Low",
+                              "effortPoints": 3,
+                              "dueDate": "YYYY-MM-DD",
+                              "status": "Task status (e.g., Grooming, To-Do, In Progress, Testing, Done)"
+                            }
+                          ]
+                        }
+                      ]
+                    }
 
-Rules:
-- Create 3 to 5 columns.
-- Each column should have 2 to 4 tasks.
-- priority must be only "Low", "Medium", or "High".
-`;
+                    Rules:
+                    - Current Date: ${new Date().toISOString().split('T')[0]} (Today is in ${new Date().getFullYear()}).
+                    - refinedName: A professional name for the project.
+                    - refinedDescription: A detailed brief of the project.
+                    - Columns: Generate 3 to 5 phases representing the project timeline.
+                    - Tasks: Each task MUST have a "status" relevant to the project (e.g., "Grooming", "To-Do", "In Progress", "Testing", "Done").
+                    - The default status for early-stage tasks should be "Grooming".
+                    - All tasks should be distributed across phases logically.
+                    - priority must be only "Low", "Medium", or "High".
+                    - effortPoints should be a number (ideally 1, 2, 3, 5, or 8).
+                    - tasks must have a dueDate within 2026.
+                  `;
 
-    
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
+    const client = new OpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY
     });
 
-    
+    const response = await client.chat.send({
+      chatRequest: {
+        model: "google/gemma-3n-e2b-it:free",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+      }
+    });
 
-    const text = completion.choices[0].message.content;
-  
-
+    const text = response.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
     const parsed = JSON.parse(text);
 
     return sendSuccess(

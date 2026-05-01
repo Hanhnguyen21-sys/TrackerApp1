@@ -343,7 +343,7 @@ export default function Dashboard() {
       setError("");
 
       // 1. Ask AI for board structure
-      const aiData = await generateProjectAI(formData.name, token);
+      const aiData = await generateProjectAI(formData.name, formData.description, token);
 
       const aiColumns = aiData.columns || aiData.data?.columns || [];
 
@@ -352,7 +352,11 @@ export default function Dashboard() {
       }
 
       // 2. Create project first
-      const projectData = await createProject(formData, token);
+      const projectData = await createProject({
+        ...formData,
+        name: aiData.refinedName || formData.name,
+        description: aiData.refinedDescription || formData.description,
+      }, token);
       const createdProject = projectData.project || projectData;
 
       // 3. Create AI columns and tickets
@@ -377,7 +381,9 @@ export default function Dashboard() {
               type: "Task",
               priority: task.priority || "Medium",
               assignee: null,
-              dueDate: null,
+              dueDate: task.dueDate || null,
+              effortPoints: task.effortPoints || 0,
+              status: task.status || "Grooming",
             },
             token,
           );
