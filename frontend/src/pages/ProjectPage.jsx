@@ -70,6 +70,7 @@ export default function ProjectPage() {
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [showCharts, setShowCharts] = useState(false);
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [projectActivity, setProjectActivity] = useState([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -416,7 +417,7 @@ export default function ProjectPage() {
   };
   const openProjectActivity = async () => {
     try {
-      setActivityLoading(true);
+      setLoadingActivity(true);
       setError("");
 
       const data = await getProjectActivity(projectId, token);
@@ -429,7 +430,7 @@ export default function ProjectPage() {
         error.response?.data?.message || "Failed to load project activity",
       );
     } finally {
-      setActivityLoading(false);
+      setLoadingActivity(false);
     }
   };
   const loadTicketDetails = async (ticketId) => {
