@@ -53,11 +53,15 @@ const ticketSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
-    completed: {
-        type: Boolean,
-        default: false,
-    }
+    effortPoints: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    dueDateUpdateCount: {
+        type: Number,
+        default: 0,
+    },
 }, { timestamps: true });
 
 export default mongoose.model('Ticket', ticketSchema);
-

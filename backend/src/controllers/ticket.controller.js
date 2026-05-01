@@ -65,7 +65,7 @@ const buildTicketResponse = async (ticket) => {
 export const createTicket = async (req, res) => {
     try {
         const { projectId } = req.params;
-        const { columnId, title, description, type, priority, assignee, dueDate } = req.body;
+        const { columnId, title, description, type, priority, assignee, dueDate, effortPoints } = req.body;
         console.log("BACKEND REQ BODY:", req.body);
         console.log("BACKEND DUE DATE:", req.body.dueDate);
         if (!isNonEmptyString(title) || !isNonEmptyString(columnId)) {
@@ -84,6 +84,7 @@ export const createTicket = async (req, res) => {
             reporter: req.user._id,
             assignee: assignee || null,
             dueDate: dueDate ? new Date(`${dueDate}T12:00:00`) : null,
+            effortPoints: Number(effortPoints) || 0,
             order: newOrder,
         });
         await ticket.save();
@@ -164,7 +165,7 @@ export const searchTickets = async (req, res) => {
 export const updateTicket = async (req, res) => {
     try {
         const { ticketId } = req.params;
-        const { title, description, type, priority, assignee, dueDate } = req.body;
+        const { title, description, type, priority, assignee, dueDate, effortPoints } = req.body;
         const ticket = await Ticket.findById(ticketId);
         console.log("BACKEND REQ BODY:", req.body);
 console.log("BACKEND DUE DATE:", req.body.dueDate);
@@ -180,10 +181,18 @@ console.log("BACKEND DUE DATE:", req.body.dueDate);
         if (description !== undefined) ticket.description = description.trim();
         if (type !== undefined) ticket.type = type;
         if (priority !== undefined) ticket.priority = priority;
-        if (assignee !== undefined) ticket.assignee = assignee;
+        if (assignee !== undefined) ticket.assignee = assignee === "" ? null : assignee;
+        if (effortPoints !== undefined) ticket.effortPoints = Number(effortPoints) || 0;
         if (dueDate !== undefined) {
-        ticket.dueDate = dueDate ? new Date(`${dueDate}T12:00:00`) : null;
-        ticket.reminderSent = false;
+            const newDate = dueDate ? new Date(`${dueDate}T12:00:00`).toISOString() : null;
+            const currentDate = ticket.dueDate ? new Date(ticket.dueDate).toISOString() : null;
+            
+            if (newDate !== currentDate) {
+                ticket.dueDateUpdateCount = (ticket.dueDateUpdateCount || 0) + 1;
+            }
+            
+            ticket.dueDate = dueDate ? new Date(`${dueDate}T12:00:00`) : null;
+            ticket.reminderSent = false;
         }
         await ticket.save();
         await createAuditEntry({
@@ -334,65 +343,5 @@ export const addTicketComment = async (req, res) => {
   } catch (error) {
     console.error('Error adding ticket comment:', error);
     return sendError(res, 'Server error', 500);
-  }
-};
-
-// mark a ticket as completed
-
-export const toggleTicketComplete = async (req, res) => {
-  try {
-    const { ticketId } = req.params;
-
-    const ticket = await Ticket.findById(ticketId);
-
-    if (!ticket) {
-      return res.status(404).json({ message: "Ticket not found" });
-    }
-
-    ticket.completed = !ticket.completed;
-
-    await ticket.save();
-
-    res.json(ticket);
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to update ticket completion status",
-      error: error.message,
-    });
-  }
-};
-
-// Get project progress
-export const getProjectProgress = async (req, res) => {
-  try {
-    const { projectId } = req.params;
-
-    const totalTasks = await Ticket.countDocuments({
-      project: projectId,
-    });
-
-    const completedTasks = await Ticket.countDocuments({
-      project: projectId,
-      completed: true,
-    });
-
-    const incompleteTasks = totalTasks - completedTasks;
-
-    const progress =
-      totalTasks === 0
-        ? 0
-        : Math.round((completedTasks / totalTasks) * 100);
-
-    res.json({
-      totalTasks,
-      completedTasks,
-      incompleteTasks,
-      progress,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to calculate project progress",
-      error: error.message,
-    });
   }
 };

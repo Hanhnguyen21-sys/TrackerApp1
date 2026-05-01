@@ -1,4 +1,4 @@
-import { Pencil, X, Eye } from "lucide-react";
+import { Pencil, X, Eye, AlertCircle } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -7,7 +7,7 @@ export default function TicketCard({
   onDeleteTicket,
   onEditTicket,
   onViewTicket,
-  onToggleComplete,
+  isViewer = false,
 }) {
   const {
     attributes,
@@ -57,33 +57,12 @@ export default function TicketCard({
       } ${isDragging ? "opacity-50" : ""}`}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2 flex-1">
-          <input
-            type="checkbox"
-            checked={ticket.completed || false}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleComplete?.(ticket._id);
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            className="mt-1 h-4 w-4 rounded border-slate-300 accent-green-600"
-          />
-
-          <div
-            className="flex-1 cursor-grab active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
-          >
-            <h3
-              className={`font-medium pr-2 ${
-                ticket.completed
-                  ? "text-slate-400 line-through"
-                  : "text-slate-900"
-              }`}
-            >
-              {ticket.title}
-            </h3>
-          </div>
+        <div
+          className="flex-1 cursor-grab active:cursor-grabbing"
+          {...attributes}
+          {...listeners}
+        >
+          <h3 className="font-medium text-slate-900 pr-2">{ticket.title}</h3>
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
@@ -95,28 +74,32 @@ export default function TicketCard({
             <Eye size={16} />
           </button>
 
-          <button
-            onClick={() => onEditTicket(ticket)}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
-            title="Edit ticket"
-          >
-            <Pencil size={16} />
-          </button>
+          {!isViewer && (
+            <>
+              <button
+                onClick={() => onEditTicket(ticket)}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-sky-600 transition"
+                title="Edit ticket"
+              >
+                <Pencil size={16} />
+              </button>
 
-          <button
-            onClick={() => {
-              const confirmed = window.confirm(
-                "Are you sure you want to delete this ticket?",
-              );
-              if (confirmed) {
-                onDeleteTicket(ticket._id);
-              }
-            }}
-            className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
-            title="Delete ticket"
-          >
-            <X size={16} />
-          </button>
+              <button
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    "Are you sure you want to delete this ticket?",
+                  );
+                  if (confirmed) {
+                    onDeleteTicket(ticket._id);
+                  }
+                }}
+                className="p-1.5 rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition"
+                title="Delete ticket"
+              >
+                <X size={16} />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -125,6 +108,17 @@ export default function TicketCard({
           {ticket.priority || "Medium"}
         </span>
         <span className="text-xs text-slate-400">{ticket.type || "Task"}</span>
+        {ticket.effortPoints > 0 && (
+          <span className="flex items-center justify-center h-6 w-6 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 border border-slate-200" title="Effort Points">
+            {ticket.effortPoints}
+          </span>
+        )}
+        {ticket.dueDateUpdateCount > 2 && (
+          <div className="flex items-center gap-1 text-red-500 animate-pulse" title={`Date pushed ${ticket.dueDateUpdateCount} times`}>
+            <AlertCircle size={14} />
+            <span className="text-[10px] font-black uppercase">Spill</span>
+          </div>
+        )}
       </div>
 
       {ticket.description && (
