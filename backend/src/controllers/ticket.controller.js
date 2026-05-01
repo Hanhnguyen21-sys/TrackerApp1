@@ -345,3 +345,62 @@ export const addTicketComment = async (req, res) => {
     return sendError(res, 'Server error', 500);
   }
 };
+
+// mark a ticket as completed
+export const toggleTicketComplete = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+
+    const ticket = await Ticket.findById(ticketId);
+
+    if (!ticket) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    ticket.completed = !ticket.completed;
+
+    await ticket.save();
+
+    res.json(ticket);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update ticket completion status",
+      error: error.message,
+    });
+  }
+};
+
+// Get project progress
+export const getProjectProgress = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    const totalTasks = await Ticket.countDocuments({
+      project: projectId,
+    });
+
+    const completedTasks = await Ticket.countDocuments({
+      project: projectId,
+      completed: true,
+    });
+
+    const incompleteTasks = totalTasks - completedTasks;
+
+    const progress =
+      totalTasks === 0
+        ? 0
+        : Math.round((completedTasks / totalTasks) * 100);
+
+    res.json({
+      totalTasks,
+      completedTasks,
+      incompleteTasks,
+      progress,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to calculate project progress",
+      error: error.message,
+    });
+  }
+};
