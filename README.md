@@ -1,162 +1,108 @@
 # 📌 Project Management Web App (Trello-like)
 
-A Tracker App helps teams organize and track tasks using a **Kanban board system**.
+A modern, high-performance Tracker App that helps teams organize and track tasks using a **Kanban board system** with advanced AI-powered automation and visualization.
 
 ---
 
-## 🚀 Overview
+## 🚀 Key Features
 
-This app allows users to:
+### 🧠 AI-Powered Project Generation
+- **Intelligent Board Creation**: Instantly generate a full project board by providing just a name and description.
+- **Refinement Context**: The AI automatically polishes project names and expands descriptions into professional briefs.
+- **Smart Scheduling**: Automatically assigns realistic due dates for the current year (2026) within sequentially generated project phases.
+- **Automated Estimation**: Tasks are intelligently assigned effort points (1, 2, 3, 5, 8) based on complexity.
+- **Workflow Automation**: AI categorizes tasks into project-relevant statuses (Grooming, To-Do, Testing, etc.) from the start.
 
-- Create and manage projects
-- Collaborate with team members
-- Track tasks using a Kanban board
-- Perform drag-and-drop task management
+### 📊 Advanced Progress Tracking
+- **Interactive Dashboards**: Real-time visualization of project health via the **Progress Modal**.
+- **Effort vs. Tasks**: Track progress not just by task count, but by total effort points completed.
+- **Status-Based Insights**: Specialized charts visualizing task distribution across workflow stages (Grooming, In Progress, Done).
+- **Velocity Tracking**: Monitor team efficiency with real-time percentage calculations of completed effort.
 
----
-
-## 🧠 Core Concept
-
-Each project contains:
-
-- **Columns (lists)** → represent task status (To Do, In Progress, Done)
-- **Tickets (tasks)** → represent work items
-
-Users interact with tickets inside columns and move them across different stages.
+### ⚡ Professional Kanban Experience
+- **Fluid Drag & Drop**: Seamless task reorganization powered by `@dnd-kit`.
+- **Workflow Statuses**: Granular task control with statuses like `Grooming`, `To-Do`, `In Progress`, `Testing`, `Done`, and `Cancelled`.
+- **Spill Protection**: Visual "Spill" indicators and custom tooltips alert you when a task's due date has been pushed more than 3 times.
+- **Activity Stream**: Detailed audit logs for every project, tracking creation, edits, moves, and comments.
 
 ---
 
 ## 👥 Role & Permission System
 
-### 🔑 Role Model
+### Admin (per project)
+- **Ownership**: Project creator.
+- **Controls**: Add/remove members, manage columns, and project settings.
 
-Each user can have different roles depending on the project:
-
-#### Admin (per project)
-
-- Project creator
-- Can:
-  - Add/remove members
-  - Manage columns
-  - Manage project settings
-
-#### Project Member
-
-- Can:
-  - Create/edit/move tickets
-  - View project and board
-
-> Note: A user can be **admin in one project** and **member in another**
+### Project Member
+- **Collaboration**: Create, edit, and move tickets.
+- **Visibility**: Full access to the project board and progress visualizations.
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Technical Stack
 
-### Flow
-
-1. User logs in → receives JWT token
-2. User accesses assigned projects
-3. Inside a project:
-   - Load columns
-   - Load tickets
-4. User actions:
-   - Create/edit/delete tickets
-   - Drag & drop between columns
-5. Backend updates database and ticket history
+- **Frontend**: React, Vite, TailwindCSS (for custom utility), Recharts (for visualizations), Lucide-React (icons).
+- **Backend**: Node.js, Express.
+- **Database**: MongoDB with Mongoose.
+- **AI**: OpenRouter SDK (using Google Gemma-3 model).
+- **Auth**: JWT-based authentication.
 
 ---
 
 ## 📊 Data Models
 
-### User
-
-```js
-User {
-  name,
-  email,
-  password,
-  role
-}
-```
-
 ### Project
-
 ```js
 Project {
-  name,
-  description,
+  name,                // Refined by AI
+  description,         // Expanded by AI
   createdBy,
   members: [userId],
-  createdDate
-}
-```
-
-### Column
-
-```js
-Column {
-  id,
-  projectId,
-  title,
-  order
+  thumbnail,
+  tagline
 }
 ```
 
 ### Ticket
-
 ```js
 Ticket {
-  id,
-  projectId,
-  columnId,
   title,
   description,
-  type,
-  priority,
-  status,
-  assignee,
-  order
+  type: ['Task', 'Bug', 'Feature'],
+  priority: ['Low', 'Medium', 'High'],
+  status: ['Grooming', 'To-Do', 'In Progress', 'Testing', 'Done', 'Cancelled'],
+  effortPoints: Number (Fibonacci-based),
+  dueDate,
+  dueDateUpdateCount,  // Tracks "Spill"
+  completed: Boolean   // Synced with status === 'Done'
 }
 ```
 
+---
+
 ## ⚙️ Setup Instructions
 
-### Prerequisites
-
-Make sure you have installed:
-
-- Node.js
-- npm
-- MongoDB local server or MongoDB Atlas account
-
-### 1. Clone the repository
-
+### 1. Clone & Install
 ```bash
 git clone https://github.com/Hanhnguyen21-sys/TrackerApp1.git
-cd <your-project-folder>
+cd TrackerApp1
+
+# Backend
+cd backend && npm install
+
+# Frontend
+cd ../frontend && npm install
 ```
 
-### 2. Install dependencies
+### 2. Configuration
+Create a `.env` file in the `backend` directory:
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_jwt_secret
+OPENROUTER_API_KEY=your_openrouter_key
+```
 
-- Backend:
-  cd backend
-  npm install
-
-- Frontend:
-  cd ../frontend
-  npm install
-
-### 3. Environment variables
-
-    create .env , and adding:
-        PORT=5000
-        MONGO_URI=your_mongodb_connection_string
-        JWT_SECRET=your_jwt_secret
-
-### 4. Run
-
-- In backend terminal
-  npm run dev
-
-- In frontend terminal
-  npm run dev
+### 3. Run Development
+- **Backend**: `npm run dev` (inside /backend)
+- **Frontend**: `npm run dev` (inside /frontend)
