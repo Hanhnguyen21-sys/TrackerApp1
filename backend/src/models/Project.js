@@ -13,6 +13,8 @@ const projectSchema = new mongoose.Schema({
   description: { type: String, default: " ", trim: true },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   members: [projectMemberSchema],
+  thumbnail: { type: String, default: "" },
+  tagline: { type: String, default: "" },
 }, { timestamps: true });
 
 const Project = mongoose.model('Project', projectSchema);

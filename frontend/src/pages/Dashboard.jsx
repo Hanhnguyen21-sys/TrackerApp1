@@ -14,6 +14,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import ProfilePage from "./ProfilePage";
 import Templates from "./Templates";
 import { getProjectProgress } from "../api/tickets"; // or progress.js
+import { THUMBNAILS } from "../constants/thumbnails";
 import {
   Pencil,
   X,
@@ -39,6 +40,8 @@ export default function Dashboard() {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    thumbnail: "",
+    tagline: "",
   });
   const [creating, setCreating] = useState(false);
 
@@ -46,6 +49,8 @@ export default function Dashboard() {
   const [editFormData, setEditFormData] = useState({
     name: "",
     description: "",
+    thumbnail: "",
+    tagline: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const searchRef = useRef(null);
@@ -483,8 +488,21 @@ export default function Dashboard() {
                       }}
                       className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-[#22272b] shadow-sm transition hover:-translate-y-1 hover:border-sky-500/40 hover:shadow-xl"
                     >
-                      <div className="h-16 bg-gradient-to-r from-sky-900 to-sky-500 relative">
-                        <div className="absolute inset-0 bg-black/20" />
+                      <div className="h-28 bg-gradient-to-r from-sky-900 to-sky-500 relative">
+                        {project.thumbnail ? (
+                          <img
+                            src={project.thumbnail}
+                            alt={project.name}
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-black/20" />
+                        )}
+                        {project.tagline && (
+                          <div className="absolute bottom-2 left-4 rounded bg-black/40 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+                            {project.tagline}
+                          </div>
+                        )}
                       </div>
                       <div className="p-5">
                         {isEditing ? (
@@ -638,6 +656,39 @@ export default function Dashboard() {
                 onChange={handleChange}
                 className="w-full rounded-xl border border-white/10 bg-[#2c333a] px-4 py-3 text-white placeholder:text-slate-400 outline-none focus:border-sky-500"
               />
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Select a Thumbnail
+                </p>
+                <div className="grid grid-cols-6 gap-2">
+                  {THUMBNAILS.map((thumb) => (
+                    <button
+                      key={thumb.id}
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          thumbnail: thumb.url,
+                          tagline: thumb.witty,
+                        }))
+                      }
+                      className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${
+                        formData.thumbnail === thumb.url
+                          ? "border-sky-500 ring-2 ring-sky-500/20"
+                          : "border-transparent hover:border-white/20"
+                      }`}
+                      title={thumb.witty}
+                    >
+                      <img
+                        src={thumb.url}
+                        alt={thumb.id}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <textarea
                 name="description"

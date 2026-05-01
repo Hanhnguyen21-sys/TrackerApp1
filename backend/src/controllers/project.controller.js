@@ -8,7 +8,7 @@ import { isNonEmptyString, validateEmail } from '../utils/validators.js';
 //create a new project
 export const createProject = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, thumbnail, tagline } = req.body;
     if (!isNonEmptyString(name)) {
       return sendError(res, 'Project name is required', 400);
     }
@@ -16,6 +16,8 @@ export const createProject = async (req, res) => {
     const newProject = new Project({
       name: name.trim(),
       description: isNonEmptyString(description) ? description.trim() : '',
+      thumbnail: thumbnail || '',
+      tagline: tagline || '',
       owner: req.user._id,
       members: [{ user: req.user._id, role: 'admin', status: 'active' }],
     });
@@ -78,7 +80,7 @@ export const getProjectById = async (req, res) => {
 //update name or description of the project
 export const updateProject = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, thumbnail, tagline } = req.body;
     const project = req.project;
 
     if (!project) {
@@ -92,6 +94,12 @@ export const updateProject = async (req, res) => {
     }
     if (description !== undefined) {
       project.description = description.trim();
+    }
+    if (thumbnail !== undefined) {
+      project.thumbnail = thumbnail;
+    }
+    if (tagline !== undefined) {
+      project.tagline = tagline;
     }
 
     await project.save();
