@@ -148,6 +148,8 @@ export default function Dashboard() {
     setEditFormData({
       name: project.name || "",
       description: project.description || "",
+      thumbnail: project.thumbnail || "",
+      tagline: project.tagline || "",
     });
   };
 
@@ -525,9 +527,42 @@ export default function Dashboard() {
                               name="description"
                               value={editFormData.description}
                               onChange={handleEditChange}
-                              rows={4}
+                              rows={2}
                               className="w-full rounded-xl border border-white/10 bg-[#2c333a] px-4 py-3 text-white outline-none focus:border-sky-500"
                             />
+
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                                Update Thumbnail
+                              </p>
+                              <div className="grid grid-cols-6 gap-1">
+                                {THUMBNAILS.map((thumb) => (
+                                  <button
+                                    key={thumb.id}
+                                    type="button"
+                                    onClick={() =>
+                                      setEditFormData((prev) => ({
+                                        ...prev,
+                                        thumbnail: thumb.url,
+                                        tagline: thumb.witty,
+                                      }))
+                                    }
+                                    className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${
+                                      editFormData.thumbnail === thumb.url
+                                        ? "border-sky-500 ring-2 ring-sky-500/20"
+                                        : "border-transparent hover:border-white/20"
+                                    }`}
+                                    title={thumb.witty}
+                                  >
+                                    <img
+                                      src={thumb.url}
+                                      alt={thumb.id}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
 
                             <div className="flex gap-2">
                               <button
