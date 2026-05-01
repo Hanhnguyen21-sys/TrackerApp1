@@ -1,4 +1,5 @@
 import Column from "../models/Column.js";
+import Ticket from "../models/Ticket.js";
 import { sendError, sendSuccess } from "../utils/apiResponse.js";
 import { isNonEmptyString } from "../utils/validators.js";
 
@@ -74,6 +75,7 @@ export const deleteColumn = async (req, res) => {
         if (!column) {
             return sendError(res, 'Column not found', 404);
         }
+        await Ticket.deleteMany({ column: columnId });
         await Column.findByIdAndDelete(columnId);
         return sendSuccess(res, {}, 'Column deleted successfully');
     }

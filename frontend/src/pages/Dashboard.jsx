@@ -13,6 +13,7 @@ import { createTicket } from "../api/tickets";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import ProfilePage from "./ProfilePage";
 import Templates from "./Templates";
+import { getProjectProgress } from "../api/tickets"; // or progress.js
 import {
   Pencil,
   X,
@@ -27,7 +28,7 @@ import {
 export default function Dashboard() {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
-
+  const [projectProgressMap, setProjectProgressMap] = useState({});
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [error, setError] = useState("");
@@ -48,11 +49,46 @@ export default function Dashboard() {
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const searchRef = useRef(null);
+  const fetchProgress = async (projectList) => {
+    if (!projectList.length) return;
+
+    const progressData = {};
+
+    await Promise.all(
+      projectList.map(async (project) => {
+        try {
+          const data = await getProjectProgress(project._id, token);
+
+          const progressInfo = data.data || data;
+
+          progressData[project._id] = {
+            progress: progressInfo.progress ?? 0,
+            completedTasks: progressInfo.completedTasks ?? 0,
+            totalTasks: progressInfo.totalTasks ?? 0,
+          };
+        } catch {
+          progressData[project._id] = {
+            progress: 0,
+            completedTasks: 0,
+            totalTasks: 0,
+          };
+        }
+      }),
+    );
+
+    setProjectProgressMap(progressData);
+  };
   const fetchProjects = async () => {
     try {
       setLoadingProjects(true);
+
       const data = await getMyProjects(token);
-      setProjects(data.projects || data);
+      const projectList = data.projects || data;
+
+      setProjects(projectList);
+
+      // ✅ THIS NOW WORKS
+      await fetchProgress(projectList);
     } catch (error) {
       console.error("Failed to fetch projects:", error);
       setError(error.response?.data?.message || "Failed to load projects");
@@ -63,6 +99,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (token) fetchProjects();
+  }, [token]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      if (token) fetchProjects();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, [token]);
 
   const handleChange = (e) => {
@@ -219,6 +264,7 @@ export default function Dashboard() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   const handleUseTemplate = async (template) => {
     try {
       setCreating(true);
@@ -414,7 +460,11 @@ export default function Dashboard() {
                     project.owner === user?._id;
 
                   const isEditing = editingProjectId === project._id;
-
+                  const progress = projectProgressMap[project._id] || {
+                    progress: 0,
+                    completedTasks: 0,
+                    totalTasks: 0,
+                  };
                   return (
                     <div
                       key={project._id}
@@ -433,8 +483,9 @@ export default function Dashboard() {
                       }}
                       className="group cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-[#22272b] shadow-sm transition hover:-translate-y-1 hover:border-sky-500/40 hover:shadow-xl"
                     >
-                      <div className="h-24 bg-gradient-to-r from-sky-900 to-sky-500" />
-
+                      <div className="h-16 bg-gradient-to-r from-sky-900 to-sky-500 relative">
+                        <div className="absolute inset-0 bg-black/20" />
+                      </div>
                       <div className="p-5">
                         {isEditing ? (
                           <form
@@ -527,6 +578,23 @@ export default function Dashboard() {
                               {project.description ||
                                 "No description provided."}
                             </p>
+                            <div className="mt-4">
+                              {/* Progress bar */}
+                              <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                                <div
+                                  className="h-full rounded-full bg-green-400 transition-all"
+                                  style={{
+                                    width: `${progress.progress ?? 0}%`,
+                                  }}
+                                />
+                              </div>
+
+                              {/* Text */}
+                              <p className="mt-2 text-xs text-slate-400">
+                                {progress.completedTasks ?? 0} of{" "}
+                                {progress.totalTasks ?? 0} tasks completed
+                              </p>
+                            </div>
                           </>
                         )}
                       </div>

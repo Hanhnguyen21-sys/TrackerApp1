@@ -89,3 +89,12 @@ export const toggleTicketComplete = async (ticketId, token) => {
 
   return res.data;
 };
+export const getProjectProgress = async (projectId, token) => {
+  const response = await api.get(`/projects/${projectId}/progress`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};

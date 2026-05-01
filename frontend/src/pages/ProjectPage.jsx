@@ -33,6 +33,9 @@ import Navbar from "../components/layout/NavBar";
 import TicketModal from "../components/modal/TicketModal";
 import TicketDetailsModal from "../components/modal/TicketDetailsModal";
 import ProgressModal from "../components/modal/ProgressModal";
+import getProjectActivity from "../api/activity";
+import ProjectActivityModal from "../components/modal/ProjectActivityModal";
+import { Activity, UserPlus } from "lucide-react";
 export default function ProjectPage() {
   const { projectId } = useParams();
   const { token, user } = useAuth();
@@ -63,6 +66,11 @@ export default function ProjectPage() {
   const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   const [showProgressModal, setShowProgressModal] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [projectActivity, setProjectActivity] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -104,21 +112,48 @@ export default function ProjectPage() {
       loadTicketDetails(ticketId);
     }
   }, [searchParams, token]);
+  const projectMembers = useMemo(() => {
+    return (
+      project?.members
+        ?.filter((member) => member.status === "active")
+        .map((member) => {
+          const memberUser = member.user || member;
 
+          return {
+            id: memberUser._id || memberUser.id,
+            name: memberUser.username || memberUser.email || "Unknown",
+            email: memberUser.email,
+          };
+        }) || []
+    );
+  }, [project]);
+  const visibleTickets = useMemo(() => {
+    const columnIds = new Set(columns.map((column) => String(column._id)));
+
+    return tickets.filter((ticket) => {
+      const columnId =
+        typeof ticket.column === "string" ? ticket.column : ticket.column?._id;
+
+      return columnIds.has(String(columnId));
+    });
+  }, [tickets, columns]);
   const projectProgress = useMemo(() => {
-    const totalTasks = tickets.length;
-    const completedTasks = tickets.filter((ticket) => ticket.completed).length;
+    const totalTasks = visibleTickets.length;
+    const completedTasks = visibleTickets.filter(
+      (ticket) => ticket.completed,
+    ).length;
+
     const incompleteTasks = totalTasks - completedTasks;
 
     const now = new Date();
     const oneDay = 24 * 60 * 60 * 1000;
 
-    const overdueTasks = tickets.filter((ticket) => {
+    const overdueTasks = visibleTickets.filter((ticket) => {
       if (!ticket.dueDate || ticket.completed) return false;
       return new Date(ticket.dueDate) < now;
     }).length;
 
-    const dueSoonTasks = tickets.filter((ticket) => {
+    const dueSoonTasks = visibleTickets.filter((ticket) => {
       if (!ticket.dueDate || ticket.completed) return false;
       const diffMs = new Date(ticket.dueDate) - now;
       return diffMs >= 0 && diffMs <= oneDay;
@@ -135,7 +170,7 @@ export default function ProjectPage() {
       dueSoonTasks,
       progress,
     };
-  }, [tickets]);
+  }, [visibleTickets]);
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
 
@@ -270,9 +305,15 @@ export default function ProjectPage() {
 
   const handleDeleteTicket = async (ticketId) => {
     try {
+      setError("");
+
       await deleteTicket(ticketId, token);
-      setTickets((prev) => prev.filter((ticket) => ticket._id !== ticketId));
+
+      setTickets((prev) =>
+        prev.filter((ticket) => String(ticket._id) !== String(ticketId)),
+      );
     } catch (error) {
+      console.error("Delete ticket failed:", error);
       setError(error.response?.data?.message || "Failed to delete ticket");
     }
   };
@@ -354,7 +395,24 @@ export default function ProjectPage() {
     setDetailActivity([]);
     setCommentText("");
   };
+  const openProjectActivity = async () => {
+    try {
+      setActivityLoading(true);
+      setError("");
 
+      const data = await getProjectActivity(projectId, token);
+
+      setProjectActivity(data.activity || data.data?.activity || []);
+      setShowActivityModal(true);
+    } catch (error) {
+      console.error("Failed to load project activity:", error);
+      setError(
+        error.response?.data?.message || "Failed to load project activity",
+      );
+    } finally {
+      setActivityLoading(false);
+    }
+  };
   const loadTicketDetails = async (ticketId) => {
     try {
       const data = await getTicketDetails(ticketId, token);
@@ -543,6 +601,23 @@ export default function ProjectPage() {
       </div>
     );
   }
+  const avatarColors = [
+    "bg-gradient-to-br from-sky-400 to-blue-600",
+    "bg-gradient-to-br from-purple-400 to-indigo-600",
+    "bg-gradient-to-br from-emerald-400 to-green-600",
+    "bg-gradient-to-br from-rose-400 to-red-600",
+    "bg-gradient-to-br from-amber-400 to-orange-600",
+  ];
+  const getAvatarColor = (member) => {
+    const text = member.id || member.email || member.name;
+    let hash = 0;
+
+    for (let i = 0; i < text.length; i++) {
+      hash = text.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return avatarColors[Math.abs(hash) % avatarColors.length];
+  };
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col">
@@ -561,21 +636,22 @@ export default function ProjectPage() {
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-white">
               {project?.name}
             </h1>
-            <p className="mt-1 text-sm text-white/65">
+
+            <p className="mt-1 text-sm text-white/80 font-medium">
               {project?.description || "Manage tasks, sprints, and progress."}
             </p>
             <div className="mt-4 w-full max-w-md">
-              <div className="mb-1 flex items-center justify-between text-sm text-white/75">
+              <div className="mb-1 flex items-center justify-between text-sm font-semibold text-white/90">
                 <span>Project Progress</span>
                 <span>{projectProgress.progress}%</span>
               </div>
 
               <div className="h-3 w-full overflow-hidden rounded-full bg-white/20">
                 <div
-                  className="h-full rounded-full bg-green-400 transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-300"
                   style={{ width: `${projectProgress.progress}%` }}
                 />
               </div>
@@ -597,18 +673,100 @@ export default function ProjectPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            {isAdmin && (
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* View Activity */}
               <button
-                onClick={() => setShowMemberPanel(true)}
-                className="rounded-lg border border-white/25 bg-white/15 px-4 py-2 text-sm font-medium text-white hover:bg-white/25 transition"
+                type="button"
+                onClick={openProjectActivity}
+                disabled={activityLoading}
+                className="inline-flex items-center gap-2 rounded-xl border bg-white/10 text-white border border-white/20 hover:bg-white/20 px-3 py-2 text-sm font-medium text-sky-200 hover:bg-sky-500/20 transition disabled:opacity-60"
               >
-                + Add Member
+                <Activity size={16} />
+                {activityLoading ? "Loading..." : "Activity"}
               </button>
+
+              {/* Add Member */}
+              {isAdmin && (
+                <button
+                  onClick={() => setShowMemberPanel(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition"
+                >
+                  <UserPlus size={16} />
+                  Add Member
+                </button>
+              )}
+            </div>
+            {/* Avatars BELOW buttons */}
+            {projectMembers.length > 0 && (
+              <div className="mt-2 flex items-center justify-end gap-3 overflow-visible">
+                {/* avatars + +N */}
+                <div className="flex items-center -space-x-3">
+                  {projectMembers.slice(0, 3).map((member, index) => {
+                    const initial = member.name.charAt(0).toUpperCase();
+                    const avatarColor = getAvatarColor(member);
+                    return (
+                      <div
+                        key={member.id}
+                        className="relative group hover:z-50"
+                      >
+                        <button
+                          type="button"
+                          className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/80 ${avatarColor} text-sm font-bold text-white shadow-md transition hover:-translate-y-1 ${
+                            index === 0 ? "z-30" : "z-20"
+                          }`}
+                        >
+                          {initial}
+                        </button>
+
+                        {/* TOOLTIP */}
+                        <div className="pointer-events-none absolute left-1/2 top-12 z-50 hidden -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-white shadow-xl group-hover:block">
+                          {member.name}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {projectMembers.length > 3 && (
+                    <div className="relative hover:z-50">
+                      <button
+                        onClick={() => setShowMemberDropdown((prev) => !prev)}
+                        className="z-40 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#1f51bf] bg-indigo-500 text-sm font-bold text-white shadow-md transition hover:-translate-y-1"
+                      >
+                        +{projectMembers.length - 3}
+                      </button>
+
+                      {/* DROPDOWN */}
+                      {showMemberDropdown && (
+                        <div className="absolute right-0 top-12 z-50 w-48 rounded-xl border border-white/10 bg-slate-900 p-2 shadow-xl">
+                          {projectMembers.slice(3).map((member) => (
+                            <div
+                              key={member.id}
+                              className="rounded-lg px-3 py-2 text-sm text-white hover:bg-white/10"
+                            >
+                              <p className="font-medium">{member.name}</p>
+                              {member.email && (
+                                <p className="text-xs text-slate-400">
+                                  {member.email}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* TEXT */}
+                <p className="text-xs text-white/60 whitespace-nowrap">
+                  {projectMembers.length} member
+                  {projectMembers.length > 1 ? "s" : ""}
+                </p>
+              </div>
             )}
           </div>
         </div>
-
         {error && (
           <div className="mt-4 flex items-start justify-between gap-3 rounded-xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             <p>{error}</p>
@@ -758,6 +916,11 @@ export default function ProjectPage() {
         progress={projectProgress}
         tickets={tickets}
         columns={columns}
+      />
+      <ProjectActivityModal
+        isOpen={showActivityModal}
+        onClose={() => setShowActivityModal(false)}
+        activity={projectActivity}
       />
 
       {showMemberPanel && (
