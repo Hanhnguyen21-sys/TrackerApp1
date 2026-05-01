@@ -127,20 +127,33 @@ export default function ProjectPage() {
         }) || []
     );
   }, [project]);
+  const visibleTickets = useMemo(() => {
+    const columnIds = new Set(columns.map((column) => String(column._id)));
+
+    return tickets.filter((ticket) => {
+      const columnId =
+        typeof ticket.column === "string" ? ticket.column : ticket.column?._id;
+
+      return columnIds.has(String(columnId));
+    });
+  }, [tickets, columns]);
   const projectProgress = useMemo(() => {
-    const totalTasks = tickets.length;
-    const completedTasks = tickets.filter((ticket) => ticket.completed).length;
+    const totalTasks = visibleTickets.length;
+    const completedTasks = visibleTickets.filter(
+      (ticket) => ticket.completed,
+    ).length;
+
     const incompleteTasks = totalTasks - completedTasks;
 
     const now = new Date();
     const oneDay = 24 * 60 * 60 * 1000;
 
-    const overdueTasks = tickets.filter((ticket) => {
+    const overdueTasks = visibleTickets.filter((ticket) => {
       if (!ticket.dueDate || ticket.completed) return false;
       return new Date(ticket.dueDate) < now;
     }).length;
 
-    const dueSoonTasks = tickets.filter((ticket) => {
+    const dueSoonTasks = visibleTickets.filter((ticket) => {
       if (!ticket.dueDate || ticket.completed) return false;
       const diffMs = new Date(ticket.dueDate) - now;
       return diffMs >= 0 && diffMs <= oneDay;
@@ -157,7 +170,7 @@ export default function ProjectPage() {
       dueSoonTasks,
       progress,
     };
-  }, [tickets]);
+  }, [visibleTickets]);
   const ticketsByColumn = useMemo(() => {
     const grouped = {};
 
@@ -292,9 +305,15 @@ export default function ProjectPage() {
 
   const handleDeleteTicket = async (ticketId) => {
     try {
+      setError("");
+
       await deleteTicket(ticketId, token);
-      setTickets((prev) => prev.filter((ticket) => ticket._id !== ticketId));
+
+      setTickets((prev) =>
+        prev.filter((ticket) => String(ticket._id) !== String(ticketId)),
+      );
     } catch (error) {
+      console.error("Delete ticket failed:", error);
       setError(error.response?.data?.message || "Failed to delete ticket");
     }
   };
@@ -582,6 +601,23 @@ export default function ProjectPage() {
       </div>
     );
   }
+  const avatarColors = [
+    "bg-gradient-to-br from-sky-400 to-blue-600",
+    "bg-gradient-to-br from-purple-400 to-indigo-600",
+    "bg-gradient-to-br from-emerald-400 to-green-600",
+    "bg-gradient-to-br from-rose-400 to-red-600",
+    "bg-gradient-to-br from-amber-400 to-orange-600",
+  ];
+  const getAvatarColor = (member) => {
+    const text = member.id || member.email || member.name;
+    let hash = 0;
+
+    for (let i = 0; i < text.length; i++) {
+      hash = text.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    return avatarColors[Math.abs(hash) % avatarColors.length];
+  };
 
   return (
     <div className="min-h-screen bg-[#0f172a] text-white flex flex-col">
@@ -600,21 +636,22 @@ export default function ProjectPage() {
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-white">
               {project?.name}
             </h1>
-            <p className="mt-1 text-sm text-white/65">
+
+            <p className="mt-1 text-sm text-white/80 font-medium">
               {project?.description || "Manage tasks, sprints, and progress."}
             </p>
             <div className="mt-4 w-full max-w-md">
-              <div className="mb-1 flex items-center justify-between text-sm text-white/75">
+              <div className="mb-1 flex items-center justify-between text-sm font-semibold text-white/90">
                 <span>Project Progress</span>
                 <span>{projectProgress.progress}%</span>
               </div>
 
               <div className="h-3 w-full overflow-hidden rounded-full bg-white/20">
                 <div
-                  className="h-full rounded-full bg-green-400 transition-all duration-300"
+                  className="h-full rounded-full bg-gradient-to-r from-green-400 to-emerald-500 transition-all duration-300"
                   style={{ width: `${projectProgress.progress}%` }}
                 />
               </div>
@@ -643,7 +680,7 @@ export default function ProjectPage() {
                 type="button"
                 onClick={openProjectActivity}
                 disabled={activityLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-3 py-2 text-sm font-medium text-sky-200 hover:bg-sky-500/20 transition disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl border bg-white/10 text-white border border-white/20 hover:bg-white/20 px-3 py-2 text-sm font-medium text-sky-200 hover:bg-sky-500/20 transition disabled:opacity-60"
               >
                 <Activity size={16} />
                 {activityLoading ? "Loading..." : "Activity"}
@@ -653,7 +690,7 @@ export default function ProjectPage() {
               {isAdmin && (
                 <button
                   onClick={() => setShowMemberPanel(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition"
+                  className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 px-4 py-2 text-sm font-medium text-white hover:bg-sky-600 transition"
                 >
                   <UserPlus size={16} />
                   Add Member
@@ -667,7 +704,7 @@ export default function ProjectPage() {
                 <div className="flex items-center -space-x-3">
                   {projectMembers.slice(0, 3).map((member, index) => {
                     const initial = member.name.charAt(0).toUpperCase();
-
+                    const avatarColor = getAvatarColor(member);
                     return (
                       <div
                         key={member.id}
@@ -675,7 +712,7 @@ export default function ProjectPage() {
                       >
                         <button
                           type="button"
-                          className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#1f51bf] bg-sky-500 text-sm font-bold text-white shadow-md transition hover:-translate-y-1 ${
+                          className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/80 ${avatarColor} text-sm font-bold text-white shadow-md transition hover:-translate-y-1 ${
                             index === 0 ? "z-30" : "z-20"
                           }`}
                         >

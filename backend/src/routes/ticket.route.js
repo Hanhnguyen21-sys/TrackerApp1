@@ -47,5 +47,10 @@ router.put(
   toggleTicketComplete
 );
 
-router.get("/project/:projectId/progress", protect, getProjectProgress);
+router.get(
+  "/projects/:projectId/progress",
+  protect,
+  requireProjectMember,
+  getProjectProgress
+);
 export default router;
