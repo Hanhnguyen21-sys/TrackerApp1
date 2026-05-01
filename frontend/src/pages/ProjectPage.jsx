@@ -655,15 +655,30 @@ export default function ProjectPage() {
         </div>
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">
-              {project?.name}
-            </h1>
+          <div className="flex items-start gap-6">
+            {project?.thumbnail && (
+              <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/20 shadow-lg transition hover:scale-105">
+                <img
+                  src={project.thumbnail}
+                  alt={project.name}
+                  className="h-full w-full object-cover"
+                />
+                {project.tagline && (
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded bg-black/60 px-2 py-0.5 text-[8px] font-bold uppercase tracking-tighter text-white backdrop-blur-sm ring-1 ring-white/10">
+                    {project.tagline}
+                  </div>
+                )}
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-white">
+                {project?.name}
+              </h1>
 
-            <p className="mt-1 text-sm text-white/80 font-medium">
-              {project?.description || "Manage tasks, sprints, and progress."}
-            </p>
-            <div className="mt-4 w-full max-w-md">
+              <p className="mt-1 text-sm text-white/80 font-medium">
+                {project?.description || "Manage tasks, sprints, and progress."}
+              </p>
+              <div className="mt-4 w-full max-w-md">
               <div className="mb-1 flex items-center justify-between text-sm font-semibold text-white/90">
                 <span>Project Progress</span>
                 <span>{projectProgress.progress}%</span>
