@@ -1,4 +1,4 @@
-import { OpenRouter } from "@openrouter/sdk";
+import Groq from "groq-sdk";
 import { sendError, sendSuccess } from "../utils/apiResponse.js";
 
 export const generateProjectBoard = async (req, res) => {
@@ -48,20 +48,18 @@ export const generateProjectBoard = async (req, res) => {
                     - tasks must have a dueDate within 2026.
                   `;
 
-    const client = new OpenRouter({
-      apiKey: process.env.OPENROUTER_API_KEY
+    const groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY
+    });
+    
+    const response = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      response_format: { type: "json_object" }
     });
 
-    const response = await client.chat.send({
-      chatRequest: {
-        model: "google/gemma-3n-e2b-it:free",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      }
-    });
-
-    const text = response.choices[0].message.content.replace(/```json/g, '').replace(/```/g, '').trim();
-    const parsed = JSON.parse(text);
+    const parsed = JSON.parse(response.choices[0].message.content);
 
     return sendSuccess(
       res,

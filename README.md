@@ -44,7 +44,7 @@ A modern, high-performance Tracker App that helps teams organize and track tasks
 - **Frontend**: React, Vite, TailwindCSS (for custom utility), Recharts (for visualizations), Lucide-React (icons).
 - **Backend**: Node.js, Express.
 - **Database**: MongoDB with Mongoose.
-- **AI**: OpenRouter SDK (using Google Gemma-3 model).
+- **AI**: Groq SDK (using Llama 3.3 70B model).
 - **Auth**: JWT-based authentication.
 
 ---
@@ -100,7 +100,7 @@ Create a `.env` file in the `backend` directory:
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
-OPENROUTER_API_KEY=your_openrouter_key
+GROQ_API_KEY=your_groq_api_key
 ```
 
 ### 3. Run Development
